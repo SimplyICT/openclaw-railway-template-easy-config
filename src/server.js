@@ -708,6 +708,32 @@ app.get("/setup/api/status", requireSetupAuth, async (_req, res) => {
       ],
     },
     {
+      value: "modelscope",
+      label: "ModelScope.ai",
+      hint: "API key",
+      options: [
+        { value: "modelscope-api-key", label: "ModelScope.ai API key" },
+      ],
+      models: [
+        {
+          id: "deepseek-ai/DeepSeek-V3.2",
+          name: "DeepSeek V3.2 (default)",
+          description: "Latest DeepSeek model with strong reasoning and coding",
+          contextWindow: 163840,
+          inputPrice: 0.00,
+          outputPrice: 0.00,
+        },
+        {
+          id: "zai-org/GLM-4.7-Flash",
+          name: "GLM-4.7 Flash",
+          description: "Fast and efficient large language model",
+          contextWindow: 131072,
+          inputPrice: 0.00,
+          outputPrice: 0.00,
+        },
+      ],
+    },
+    {
       value: "moonshot",
       label: "Moonshot AI",
       hint: "Kimi K2 + Kimi Code",
@@ -808,6 +834,7 @@ function buildOnboardArgs(payload) {
     // (Atlas Cloud uses OpenAI-compatible API, so map it to openai-api-key)
     const authChoiceMap = {
       "atlas-api-key": "openai-api-key",
+      "modelscope-api-key": "openai-api-key",
     };
     const effectiveAuthChoice = authChoiceMap[payload.authChoice] || payload.authChoice;
     args.push("--auth-choice", effectiveAuthChoice);
@@ -821,6 +848,8 @@ function buildOnboardArgs(payload) {
       "ai-gateway-api-key": "--ai-gateway-api-key",
       // Atlas Cloud uses OpenAI-compatible API, so use --openai-api-key
       "atlas-api-key": "--openai-api-key",
+      // ModelScope.ai uses OpenAI-compatible API, so use --openai-api-key
+      "modelscope-api-key": "--openai-api-key",
       "moonshot-api-key": "--moonshot-api-key",
       "kimi-code-api-key": "--kimi-code-api-key",
       "gemini-api-key": "--gemini-api-key",
@@ -910,6 +939,11 @@ app.post("/setup/api/run", requireSetupAuth, async (req, res) => {
       console.log(`[onboard] Running Atlas Cloud onboarding with OPENAI_BASE_URL=https://api.atlascloud.ai/v1/`);
       onboard = await runCmd(OPENCLAW_NODE, clawArgs(onboardArgs), {}, {
         OPENAI_BASE_URL: "https://api.atlascloud.ai/v1/",
+      });
+    } else if (payload.authChoice === "modelscope-api-key") {
+      console.log(`[onboard] Running ModelScope onboarding with OPENAI_BASE_URL=https://api-inference.modelscope.ai/v1`);
+      onboard = await runCmd(OPENCLAW_NODE, clawArgs(onboardArgs), {}, {
+        OPENAI_BASE_URL: "https://api-inference.modelscope.ai/v1",
       });
     } else {
       onboard = await runCmd(OPENCLAW_NODE, clawArgs(onboardArgs));
@@ -1207,6 +1241,43 @@ app.post("/setup/api/run", requireSetupAuth, async (req, res) => {
         extra += `\n[atlas] configured Atlas Cloud provider (model: ${atlasModel})\n`;
       } else {
         console.log(`[atlas] Skipping Atlas Cloud configuration (authChoice was: ${payload.authChoice})`);
+      }
+
+      // Configure ModelScope.ai if selected (using OpenAI-compatible endpoint)
+      if (payload.authChoice === "modelscope-api-key") {
+        const msModel = payload.modelscopeModel || "deepseek-ai/DeepSeek-V3.2";
+        console.log(`[modelscope] Configuring ModelScope.ai provider with model: ${msModel}`);
+
+        await runCmd(
+          OPENCLAW_NODE,
+          clawArgs(["config", "set", "models.mode", "merge"]),
+        );
+
+        const providerConfig = {
+          baseUrl: "https://api-inference.modelscope.ai/v1",
+          apiKey: "${OPENAI_API_KEY}",
+          api: "openai-completions",
+          models: [
+            { id: "deepseek-ai/DeepSeek-V3.2", name: "DeepSeek V3.2" },
+            { id: "zai-org/GLM-4.7-Flash", name: "GLM-4.7 Flash" },
+          ]
+        };
+
+        console.log(`[modelscope] Provider config:`, JSON.stringify(providerConfig));
+
+        const setProviderResult = await runCmd(
+          OPENCLAW_NODE,
+          clawArgs(["config", "set", "--json", "models.providers.modelscope", JSON.stringify(providerConfig)]),
+        );
+        console.log(`[modelscope] Set provider result: exit=${setProviderResult.code}`, setProviderResult.output || "(no output)");
+
+        const setModelResult = await runCmd(
+          OPENCLAW_NODE,
+          clawArgs(["config", "set", "agents.defaults.model.primary", `modelscope/${msModel}`]),
+        );
+        console.log(`[modelscope] Set model result: exit=${setModelResult.code}`, setModelResult.output || "(no output)");
+
+        extra += `\n[modelscope] configured ModelScope.ai provider (model: ${msModel})\n`;
       }
 
       // Apply changes immediately.
