@@ -232,9 +232,14 @@
             OpenRouter Model
             <span class="badge">OpenRouter</span>
           </label>
-          <input id="openrouterModel" list="openrouterModelList" type="text" placeholder="e.g. anthropic/claude-sonnet-4.6:online" autocomplete="off" />
-          <datalist id="openrouterModelList"></datalist>
-          <span class="hint-text">Pick a model or type any OpenRouter model ID. Add <code>:online</code> for web search.</span>
+          <select id="openrouterModelSelect">
+            <option value="">Loading models...</option>
+          </select>
+          <label for="openrouterModel" style="margin-top: 0.5rem;">
+            Model ID <span class="optional-text">(editable)</span>
+          </label>
+          <input id="openrouterModel" type="text" placeholder="e.g. anthropic/claude-sonnet-4.6:online" autocomplete="off" />
+          <span class="hint-text">Select a model above, then edit the ID if needed. Add <code>:online</code> for web search.</span>
           <div id="openrouter-model-info" class="info-box" style="margin-top: 0.75rem;" hidden>
             <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem;">
               <div style="flex: 1;">

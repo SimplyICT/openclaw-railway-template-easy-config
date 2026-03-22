@@ -50,6 +50,7 @@
     atlasModelInput: null,
     atlasModelOutput: null,
     openrouterModelGroup: null,
+    openrouterModelSelect: null,
     openrouterModel: null,
     openrouterModelInfo: null,
     openrouterModelName: null,
@@ -168,6 +169,7 @@
     els.atlasModelInput = $('#atlas-model-input');
     els.atlasModelOutput = $('#atlas-model-output');
     els.openrouterModelGroup = $('#openrouter-model-group');
+    els.openrouterModelSelect = $('#openrouterModelSelect');
     els.openrouterModel = $('#openrouterModel');
     els.openrouterModelInfo = $('#openrouter-model-info');
     els.openrouterModelName = $('#openrouter-model-name');
@@ -342,6 +344,9 @@
     }
     if (els.openrouterModel && state.formData.openrouterModel) {
       els.openrouterModel.value = state.formData.openrouterModel;
+      if (els.openrouterModelSelect) {
+        els.openrouterModelSelect.value = state.formData.openrouterModel;
+      }
     }
     if (els.modelscopeModel && state.formData.modelscopeModel) {
       els.modelscopeModel.value = state.formData.modelscopeModel;
@@ -604,10 +609,6 @@
         state.openrouterModels = selectedGroup.models;
         populateOpenrouterModels(selectedGroup.models);
         showElement(els.openrouterModelGroup);
-        if (state.formData.openrouterModel) {
-          els.openrouterModel.value = state.formData.openrouterModel;
-          updateOpenrouterModelInfo();
-        }
       } else {
         hideElement(els.openrouterModelGroup);
       }
@@ -649,25 +650,37 @@
   // OpenRouter Model Selection
   // ===================================
   function populateOpenrouterModels(models) {
-    if (!els.openrouterModel) return;
+    if (!els.openrouterModelSelect) return;
 
-    var datalist = document.getElementById('openrouterModelList');
-    if (datalist) {
-      datalist.innerHTML = '';
-      for (var i = 0; i < models.length; i++) {
-        var m = models[i];
-        var opt = document.createElement('option');
-        opt.value = m.id;
-        opt.label = m.name;
-        datalist.appendChild(opt);
-      }
+    els.openrouterModelSelect.innerHTML = '';
+
+    for (var i = 0; i < models.length; i++) {
+      var m = models[i];
+      var opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.name;
+      els.openrouterModelSelect.appendChild(opt);
     }
 
-    els.openrouterModel.oninput = updateOpenrouterModelInfo;
-    els.openrouterModel.onchange = updateOpenrouterModelInfo;
+    // When select changes, sync to text input
+    els.openrouterModelSelect.onchange = function () {
+      if (els.openrouterModel) {
+        els.openrouterModel.value = els.openrouterModelSelect.value;
+      }
+      updateOpenrouterModelInfo();
+    };
 
-    if (!els.openrouterModel.value && state.formData.openrouterModel) {
-      els.openrouterModel.value = state.formData.openrouterModel;
+    // When text input changes, update info panel
+    if (els.openrouterModel) {
+      els.openrouterModel.oninput = updateOpenrouterModelInfo;
+      els.openrouterModel.onchange = updateOpenrouterModelInfo;
+    }
+
+    // Set initial values
+    var initial = state.formData.openrouterModel || (models.length ? models[0].id : '');
+    els.openrouterModelSelect.value = initial;
+    if (els.openrouterModel) {
+      els.openrouterModel.value = initial;
     }
 
     updateOpenrouterModelInfo();
