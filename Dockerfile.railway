@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Pull pre-built openclaw image
-ARG OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:latest-slim
+ARG OPENCLAW_IMAGE=ghcr.io/openclaw/openclaw:2026.3.28-slim
 FROM ${OPENCLAW_IMAGE} AS openclaw-source
 
 # Use pre-built base image (heavy deps: apt, Homebrew, Chrome, Python)
