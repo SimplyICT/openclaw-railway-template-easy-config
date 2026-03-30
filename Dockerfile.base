@@ -1,65 +1,27 @@
 # syntax=docker/dockerfile:1
 # Base image: heavy, rarely-changing system dependencies.
-# Rebuild this only when system deps change (apt, Homebrew, Chrome, Python libs).
+# Rebuild this only when system deps change (apt, Python libs).
 # Published to: ghcr.io/derekcheungsa/openclaw-railway-template-easy-config-base:latest
 
 FROM node:22-bookworm
 ENV NODE_ENV=production
 
-# Install all apt packages in one pass
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    wget \
-    build-essential \
-    gcc \
-    g++ \
-    make \
     procps \
     file \
     git \
     python3 \
     python3-venv \
     python3-pip \
-    pkg-config \
-    sudo \
     poppler-utils \
-    fonts-ipafont-gothic \
-    fonts-wqy-zenhei \
-    fonts-thai-tlwg \
-    fonts-kacst \
-    fonts-freefont-ttf \
-    libxss1 \
   && rm -rf /var/lib/apt/lists/*
-
-# Install Google Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
-  && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-  && apt-get update \
-  && apt-get install -y google-chrome-stable \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install Homebrew (must run as non-root user)
-RUN useradd -m -s /bin/bash linuxbrew \
-  && echo 'linuxbrew ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-USER linuxbrew
-RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install gog CLI for Google Workspace skill
-RUN /home/linuxbrew/.linuxbrew/bin/brew install steipete/tap/gogcli
-
-USER root
-RUN chown -R root:root /home/linuxbrew/.linuxbrew
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 # Python virtual environment + PDF libraries
 RUN python3 -m venv /opt/pdf-venv \
   && /opt/pdf-venv/bin/pip install --no-cache-dir pypdf pdfplumber reportlab
 ENV PATH="/opt/pdf-venv/bin:${PATH}"
-
-# Enable corepack for pnpm
-RUN corepack enable
 
 WORKDIR /app
