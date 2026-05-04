@@ -12,9 +12,9 @@ def log_event():
 
     supabase: Client = create_client(url, key)
     
-    # Protocol Confirmation Log
+    # Humility Directive Log
     data = {
-        "content": "Protocol Confirmation (2026-05-04): Bruce confirmed primary rules and the four-step persistence protocol (Task, Memory, DB, Sync). Adherence is mandatory for the Claw Way.",
+        "content": "Humility Directive added (2026-05-04): Overconfidence is the sum of all turds. Never be overconfident. Measure twice, cut once.",
         "category": "protocol",
         "importance": 10
     }
