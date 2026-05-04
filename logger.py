@@ -12,11 +12,11 @@ def log_event():
 
     supabase: Client = create_client(url, key)
     
-    # Using the 'agent_memories' table as confirmed by David
+    # Protocol Confirmation Log
     data = {
-        "content": "Conversation Update (2026-05-04): David confirmed IP mappings for simplyict.com.au. RMM is 208.87.135.69 (critical); Web fleet is 209.182.235.47.",
-        "category": "infrastructure",
-        "importance": 8
+        "content": "Protocol Confirmation (2026-05-04): Bruce confirmed primary rules and the four-step persistence protocol (Task, Memory, DB, Sync). Adherence is mandatory for the Claw Way.",
+        "category": "protocol",
+        "importance": 10
     }
     
     try:
