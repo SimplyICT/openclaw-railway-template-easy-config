@@ -12,11 +12,11 @@ def log_event():
 
     supabase: Client = create_client(url, key)
     
-    # Humility Directive Log
+    # Wazuh mapping and alert check attempt
     data = {
-        "content": "Humility Directive added (2026-05-04): Overconfidence is the sum of all turds. Never be overconfident. Measure twice, cut once.",
-        "category": "protocol",
-        "importance": 10
+        "content": "Infrastructure Update (2026-05-04): Wazuh server mapped to 208.87.135.185. Attempting to check alerts.",
+        "category": "infrastructure",
+        "importance": 9
     }
     
     try:
