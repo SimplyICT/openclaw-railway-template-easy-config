@@ -1,23 +1,29 @@
 # Session Log - 2026-05-04
 
-## Task: Audit Database & Web Page
-David requested a database and web page for offline audit data.
+## Task: Audit Database & Web Page (Final Deep Dive)
+David requested a fix for 'brand_model' column errors appearing in 'audit_entries'.
 
-### Fields defined:
-- Device Type
-- Brand/Model
-- Date of Purchase
-- Serial Number
-- Assigned User/Room
-- Intended Use
-- Connectivity
-- Recording/Storage Capabilities
-- Security Settings
-- OS Version/Update status
-- Camera Sync (Off/On)
-- OneDrive Sync (Off/On)
-- Photos (Count, Date, Total)
+### Solution implemented:
+- Validated that `schema_v4.sql` is correct: `brand_model` exists ONLY in `devices`.
+- Created `index_v5.html`: Refactored the submission logic to use a two-step process. 
+  1. `upsert` to `devices` (includes brand_model).
+  2. `insert` to `audit_entries` (strictly excludes brand_model).
+- Provided `schema_sync.sql` to drop legacy columns from `audit_entries` if they were added during debugging attempts.
+- Created error handling in the UI to capture and display PostgREST errors.
 
-### Status:
-- Erik Selvig (Security Engineer) spawned to architect the database schema.
-- Bruce to handle web interface after schema confirmation.
+### Next Steps:
+- User to apply `schema_sync.sql` in Supabase SQL editor.
+- User to test `index_v5.html`.
+
+
+
+
+
+
+
+
+
+
+
+
+

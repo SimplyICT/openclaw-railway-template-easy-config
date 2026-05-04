@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Site Compliance Audit (v5)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
+        .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h2>🦞 Multi-Site Compliance Audit Hub</h2>
+    
+    <div class="container">
+        <!-- FORM SIDE -->
+        <div class="form-panel">
+            <div class="site-manager">
+                <h3>Site Selection</h3>
+                <label>Active Audit Site</label>
+                <div style="display:flex; gap:5px;">
+                    <select id="siteSelect"><option value="">-- Select Site --</option></select>
+                    <button type="button" id="addSiteBtn" style="background:#4caf50; margin:0; white-space:nowrap;">+ New Site</button>
+                </div>
+            </div>
+
+            <form id="auditForm">
+                <h3>New Audit Entry</h3>
+                <div class="grid">
+                    <div class="full-width">
+                        <label>Serial Number (Lookup)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="serial_number" name="serial_number" required placeholder="Enter SN...">
+                            <button type="button" id="fetchBtn" style="background:#1976d2; margin:0; white-space:nowrap;">Load History</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>Device Type</label>
+                        <select name="device_type" id="deviceTypeSelect">
+                            <option value="">-- Select Type --</option>
+                            <option value="Laptop">Laptop</option>
+                            <option value="Desktop">Desktop</option>
+                            <option value="Tablet">Tablet</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Camera">Camera</option>
+                        </select>
+                    </div>
+
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    
+                    <div class="full-width audit-header">Compliance Data (Auto-Timestamped)</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Updates Status</label><input type="text" name="update_status"></div>
+                    <div><label>Security Check</label><input type="text" name="security_check"></div>
+                    
+                    <div>
+                        <label>Camera Sync Off</label>
+                        <select name="camera_sync_off">
+                            <option value="true">Yes</option>
+                            <option value="false" selected>No</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>OneDrive Sync On</label>
+                        <select name="onedrive_sync_on">
+                            <option value="true" selected>Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+
+                    <div><label>Photos Count</label><input type="number" name="photos_count"></div>
+                    <div><label>Photos Date</label><input type="date" name="photos_date"></div>
+                    
+                    <div class="full-width">
+                        <label>Audit Notes</label>
+                        <textarea name="notes" rows="2" placeholder="Site-specific findings..."></textarea>
+                    </div>
+                </div>
+                <div id="formError" class="error"></div>
+                <button type="submit" id="submitBtn" style="width:100%;">Commit Audit to Selected Site</button>
+            </form>
+        </div>
+
+        <!-- HISTORY SIDE -->
+        <div class="history-panel">
+            <h3>Site & Device Audit Logs</h3>
+            <div id="historyTarget">Select a site and serial number to view historical records.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // REPLACE WITH ACTUAL CONFIG OR FETCH FROM ENVIRONMENT IF POSSIBLE
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+        const siteSelect = document.getElementById('siteSelect');
+        const deviceTypeSelect = document.getElementById('deviceTypeSelect');
+        const formError = document.getElementById('formError');
+
+        function toggleFields() {
+            const type = deviceTypeSelect.value;
+            const isMobile = (type === 'Tablet' || type === 'Phone');
+            const isComputer = (type === 'Laptop' || type === 'Desktop');
+
+            form.elements['windows_os'].disabled = !isComputer;
+            form.elements['ios_version'].disabled = !isMobile;
+            
+            [form.elements['windows_os'], form.elements['ios_version']].forEach(el => {
+                el.style.backgroundColor = el.disabled ? '#eee' : 'white';
+            });
+        }
+
+        deviceTypeSelect.addEventListener('change', toggleFields);
+
+        async function refreshSites() {
+            const { data, error } = await _supabase.from('sites').select('site_name').order('site_name');
+            if (error) {
+                console.error("Sites fetch error:", error);
+                return;
+            }
+            if (data) {
+                siteSelect.innerHTML = '<option value="">-- Select Active Site --</option>' + 
+                    data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join('');
+            }
+        }
+        refreshSites();
+
+        document.getElementById('addSiteBtn').addEventListener('click', async () => {
+            const name = prompt("Enter New Site Name:");
+            if (name) {
+                const { error } = await _supabase.from('sites').insert([{ site_name: name }]);
+                if (error) alert(error.message);
+                else refreshSites();
+            }
+        });
+
+        async function loadHistory(sn) {
+            const { data, error } = await _supabase
+                .from('audit_entries')
+                .select('*')
+                .eq('serial_number', sn)
+                .order('audit_timestamp', { ascending: false });
+
+            const target = document.getElementById('historyTarget');
+            if (data && data.length > 0) {
+                let html = '<table><tr><th>Time</th><th>Site</th><th>OS/Ver</th><th>Cloud</th><th>Notes</th></tr>';
+                data.forEach(row => {
+                    const time = new Date(row.audit_timestamp).toLocaleString();
+                    html += `<tr>
+                        <td>${time}</td>
+                        <td style="font-weight:bold;">${row.site_name || 'N/A'}</td>
+                        <td>${row.windows_os || row.ios_version || '-'}</td>
+                        <td>Cam:${row.camera_sync_off?'OFF':'ON'}/OD:${row.onedrive_sync_on?'ON':'OFF'}</td>
+                        <td>${row.notes || ''}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                target.innerHTML = html;
+            } else {
+                target.innerHTML = '<strong>No prior audit records found.</strong>';
+            }
+        }
+
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const sn = document.getElementById('serial_number').value.trim();
+            if (!sn) return;
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) {
+                form.elements['device_type'].value = device.device_type || '';
+                form.elements['brand_model'].value = device.brand_model || '';
+                toggleFields();
+            }
+            loadHistory(sn);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formError.textContent = '';
+            
+            const site = siteSelect.value;
+            if (!site) return alert('Please select a Site first!');
+
+            const formData = new FormData(form);
+            const rawData = Object.fromEntries(formData.entries());
+
+            try {
+                // STEP 1: UPSERT DEVICE (Handles brand_model etc.)
+                const { error: devError } = await _supabase.from('devices').upsert({
+                    serial_number: rawData.serial_number,
+                    device_type: rawData.device_type,
+                    brand_model: rawData.brand_model
+                });
+                if (devError) throw devError;
+
+                // STEP 2: INSERT AUDIT ENTRY
+                // CRITICAL: We explicitly exclude columns that only exist in 'devices'
+                const auditPayload = {
+                    serial_number: rawData.serial_number,
+                    site_name: site,
+                    windows_os: rawData.windows_os,
+                    ios_version: rawData.ios_version,
+                    update_status: rawData.update_status,
+                    security_check: rawData.security_check,
+                    camera_sync_off: rawData.camera_sync_off === 'true',
+                    onedrive_sync_on: rawData.onedrive_sync_on === 'true',
+                    photos_count: parseInt(rawData.photos_count) || 0,
+                    photos_date: rawData.photos_date || null,
+                    notes: rawData.notes
+                    // NOT INCLUDING brand_model or device_type HERE
+                };
+
+                const { error: auditError } = await _supabase.from('audit_entries').insert([auditPayload]);
+                if (auditError) throw auditError;
+
+                alert(`Audit committed for ${site}! 🦞`);
+                loadHistory(rawData.serial_number);
+                form.elements['notes'].value = '';
+                
+            } catch (err) {
+                console.error("Commit error:", err);
+                formError.textContent = `Error: ${err.message || 'Check console'}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Audit System</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1000px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; }
+        input, select, textarea { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        .history-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #eee; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h2>🦞 Compliance Audit System</h2>
+    <div class="container">
+        <!-- FORM SIDE -->
+        <div class="form-panel">
+            <form id="auditForm">
+                <h3>New Audit Entry</h3>
+                <div class="grid">
+                    <div class="full-width">
+                        <label>Serial Number (Lookup/Key)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="serial_number" name="serial_number" required>
+                            <button type="button" id="fetchBtn" style="background:#1976d2; margin:0;">Load Hardware</button>
+                        </div>
+                    </div>
+
+                    <div><label>Device Type</label><input type="text" name="device_type"></div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    
+                    <div class="full-width" style="color: #d32f2f; font-weight: bold; padding-top:10px;">Audit Details (Historical Record)</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Updates</label><input type="text" name="update_status"></div>
+                    <div><label>Security Check</label><input type="text" name="security_check"></div>
+                    
+                    <div>
+                        <label>Camera Sync Off</label>
+                        <select name="camera_sync_off">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>OneDrive Sync On</label>
+                        <select name="onedrive_sync_on">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+
+                    <div><label>Photos Count</label><input type="number" name="photos_count"></div>
+                    <div><label>Photos Date</label><input type="date" name="photos_date"></div>
+                    
+                    <div class="full-width">
+                        <label>Audit Notes</label>
+                        <textarea name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <button type="submit" style="width:100%;">Commit New Audit Entry</button>
+            </form>
+        </div>
+
+        <!-- HISTORY SIDE -->
+        <div class="history-panel">
+            <h3>Audit History</h3>
+            <div id="historyTarget">Enter a Serial Number to view history.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+
+        async function loadHistory(sn) {
+            const { data, error } = await _supabase
+                .from('audit_entries')
+                .select('*')
+                .eq('serial_number', sn)
+                .order('audit_date', { ascending: false });
+
+            const target = document.getElementById('historyTarget');
+            if (data && data.length > 0) {
+                let html = '<table><tr><th>Date</th><th>OS</th><th>Updates</th><th>Photos</th></tr>';
+                data.forEach(row => {
+                    html += `<tr>
+                        <td>${new Date(row.audit_date).toLocaleDateString()}</td>
+                        <td>${row.windows_os || row.ios_version || '-'}</td>
+                        <td>${row.update_status || '-'}</td>
+                        <td>${row.photos_count || 0}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                target.innerHTML = html;
+            } else {
+                target.innerHTML = 'No prior audits found.';
+            }
+        }
+
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const sn = document.getElementById('serial_number').value;
+            if (!sn) return;
+
+            // Fetch device core info
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) {
+                form.elements['device_type'].value = device.device_type || '';
+                form.elements['brand_model'].value = device.brand_model || '';
+            }
+            loadHistory(sn);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // 1. Ensure Device exists (upsert into 'devices' table)
+            await _supabase.from('devices').upsert({
+                serial_number: data.serial_number,
+                device_type: data.device_type,
+                brand_model: data.brand_model
+            });
+
+            // 2. Clear hardware fields from the audit entry object
+            const auditData = {...data};
+            delete auditData.device_type;
+            delete auditData.brand_model;
+
+            // 3. Insert new historical entry
+            const { error } = await _supabase.from('audit_entries').insert([auditData]);
+
+            if (error) alert(error.message);
+            else {
+                alert('Audit record committed! 🦞');
+                loadHistory(data.serial_number);
+                // We don't reset serial number so user can see the history updated
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Audit Entry</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; width: 100%; font-size: 1em; }
+        button:hover { background-color: #b71c1c; }
+        h2 { color: #333; }
+    </style>
+</head>
+<body>
+    <h2>🦞 Device Audit Form</h2>
+    <form id="auditForm">
+        <!-- ... (existing form fields) ... -->
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Replace with your actual Supabase URL and Anon Key
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Convert sync status to booleans
+            data.camera_sync_status = data.camera_sync_status === 'true';
+            data.onedrive_sync_status = data.onedrive_sync_status === 'true';
+
+            const { error } = await supabase
+                .from('offline_audits')
+                .insert([data]);
+
+            if (error) {
+                alert('Error saving audit: ' + error.message);
+            } else {
+                alert('Audit saved successfully! 🦞');
+                form.reset();
+            }
+        });
+    </script>
+</body>
+</html>

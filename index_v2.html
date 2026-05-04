@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Audit Entry v2</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .full-width { grid-column: span 3; }
+        .serial-group { grid-column: span 2; display: flex; gap: 10px; align-items: flex-end; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.85em; color: #555; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        .btn-lookup { background-color: #1976d2; white-space: nowrap; height: 38px; }
+        button:hover { opacity: 0.9; }
+        h2 { color: #333; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; }
+        .section-title { grid-column: span 3; font-weight: bold; margin-top: 10px; color: #d32f2f; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <h2>🦞 Advanced Device Audit</h2>
+    <form id="auditForm">
+        <div class="grid">
+            <div class="serial-group">
+                <div style="flex-grow: 1;">
+                    <label>Serial Number (Primary Key)</label>
+                    <input type="text" name="serial_number" id="serial_number" required>
+                </div>
+                <button type="button" class="btn-lookup" id="fetchBtn">Search/Load</button>
+            </div>
+            <div>
+                <label>Device Type</label>
+                <input type="text" name="device_type">
+            </div>
+            <div>
+                <label>Brand/Model</label>
+                <input type="text" name="brand_model">
+            </div>
+            <div>
+                <label>Date of Purchase</label>
+                <input type="date" name="date_of_purchase">
+            </div>
+            <div>
+                <label>Assigned User/Room</label>
+                <input type="text" name="assigned_user_room">
+            </div>
+
+            <div class="section-title">System & Security</div>
+            <div>
+                <label>Windows OS</label>
+                <input type="text" name="windows_os">
+            </div>
+            <div>
+                <label>iOS Version</label>
+                <input type="text" name="ios_version">
+            </div>
+            <div>
+                <label>Update Status</label>
+                <input type="text" name="update_status">
+            </div>
+            <div>
+                <label>Windows Updates</label>
+                <input type="text" name="windows_updates">
+            </div>
+            <div>
+                <label>Security Check</label>
+                <input type="text" name="security_check">
+            </div>
+            <div>
+                <label>Security Settings Applied</label>
+                <input type="text" name="security_settings_applied">
+            </div>
+
+            <div class="section-title">Cloud & Media</div>
+            <div>
+                <label>OneDrive Status</label>
+                <input type="text" name="onedrive_status">
+            </div>
+            <div>
+                <label>OneDrive Sync On</label>
+                <select name="onedrive_sync_on">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+            <div>
+                <label>Camera Sync Off</label>
+                <select name="camera_sync_off">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+            <div>
+                <label>Photos Count</label>
+                <input type="number" name="photos_count">
+            </div>
+            <div>
+                <label>Total Photos</label>
+                <input type="number" name="total_photos">
+            </div>
+            <div>
+                <label>Photos Date</label>
+                <input type="date" name="photos_date">
+            </div>
+
+            <div class="section-title">Additional Info</div>
+            <div>
+                <label>Connectivity</label>
+                <input type="text" name="connectivity">
+            </div>
+            <div>
+                <label>Ignore Record?</label>
+                <select name="ignore_flag">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                </select>
+            </div>
+            <div>
+                <label>Storage Caps</label>
+                <input type="text" name="recording_storage_capabilities">
+            </div>
+            <div class="full-width">
+                <label>Intended Use</label>
+                <textarea name="intended_use" rows="2"></textarea>
+            </div>
+            <div class="full-width">
+                <label>Notes</label>
+                <textarea name="notes" rows="2"></textarea>
+            </div>
+        </div>
+        <button type="submit" style="margin-top:20px; font-weight:bold;">Save / Update Audit</button>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+
+        // LOOKUP FUNCTION
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const rawSerial = document.getElementById('serial_number').value;
+            if (!rawSerial) return alert('Enter a serial number first');
+
+            const { data, error } = await _supabase
+                .from('offline_audits')
+                .select('*')
+                .eq('serial_number', rawSerial)
+                .single();
+
+            if (error) {
+                alert('No record found or error: ' + error.message);
+            } else if (data) {
+                // Populate form
+                Object.keys(data).forEach(key => {
+                    const field = form.elements[key];
+                    if (field) {
+                        if (field.type === 'select-one') {
+                            field.value = String(data[key]);
+                        } else {
+                            field.value = data[key] || '';
+                        }
+                    }
+                });
+                alert('Record loaded! 🦞');
+            }
+        });
+
+        // SAVE / UPDATE FUNCTION
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Type Conversions
+            data.camera_sync_off = data.camera_sync_off === 'true';
+            data.onedrive_sync_on = data.onedrive_sync_on === 'true';
+            data.ignore_flag = data.ignore_flag === 'true';
+            if (!data.photos_count) delete data.photos_count;
+            if (!data.total_photos) delete data.total_photos;
+
+            const { error } = await _supabase
+                .from('offline_audits')
+                .upsert([data], { onConflict: 'serial_number' });
+
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                alert('Audit saved/updated successfully! 🦞');
+            }
+        });
+    </script>
+</body>
+</html>
