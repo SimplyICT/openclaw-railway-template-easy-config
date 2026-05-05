@@ -260,8 +260,20 @@
             }
         }
 
-        document.getElementById('sitePicker').addEventListener('change', updateDashboard);
-        setInterval(updateDashboard, 30000);
+        // Function to force refresh on site change
+        document.getElementById('sitePicker').addEventListener('change', () => {
+            console.log("Site change detected, refreshing data...");
+            updateDashboard();
+        });
+
+        // Set interval with variable for tracking
+        console.log("Initializing auto-refresh sequence (30s interval)...");
+        const refreshInterval = setInterval(() => {
+            console.log("Executing scheduled auto-refresh...");
+            updateDashboard();
+        }, 30000);
+
+        // Initial call
         updateDashboard();
     </script>
 </body>
