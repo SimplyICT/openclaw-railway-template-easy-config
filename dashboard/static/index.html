@@ -3,205 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Asgardian Tactical Dashboard</title>
+    <title>🦞 Mission Control : Asgard</title>
     <style>
         :root {
-            --primary-red: #d32f2f;
-            --dark-bg: #1a1a1a;
-            --card-bg: #2d2d2d;
+            --primary-red: #ff1744;
+            --terminal-green: #00e676;
             --text-gold: #ffca28;
-            --text-white: #ffffff;
+            --dark-bg: #0a0a0c;
+            --panel-bg: rgba(20, 20, 25, 0.95);
+            --border-glow: rgba(255, 23, 68, 0.3);
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Courier New', Courier, monospace;
             background-color: var(--dark-bg);
-            color: var(--text-white);
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            color: var(--terminal-green);
             margin: 0;
             padding: 20px;
+            text-transform: uppercase;
         }
         .header {
-            text-align: center;
+            text-align: left;
             border-bottom: 2px solid var(--primary-red);
-            padding-bottom: 10px;
+            padding: 10px;
             margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 15px var(--border-glow);
         }
-        .header h1 { color: var(--primary-red); margin: 0; font-size: 2.5em; }
-        .header p { color: var(--text-gold); font-style: italic; }
+        .header h1 { 
+            color: var(--primary-red); 
+            margin: 0; 
+            font-size: 1.8em; 
+            letter-spacing: 5px;
+            text-shadow: 0 0 10px var(--primary-red);
+        }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 15px;
         }
 
         .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--primary-red);
             padding: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            border-left: 5px solid var(--primary-red);
+            box-shadow: inset 0 0 10px rgba(255, 23, 68, 0.2);
+            position: relative;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 10px; height: 10px;
+            border-top: 2px solid var(--text-gold);
+            border-left: 2px solid var(--text-gold);
         }
 
         .card h2 {
             margin-top: 0;
-            font-size: 1.2em;
+            font-size: 1em;
             color: var(--text-gold);
-            border-bottom: 1px solid #444;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 23, 68, 0.3);
             padding-bottom: 5px;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
+        /* Mission Control Layout */
+        .site-card { grid-column: span 4; }
+        .team-card { grid-column: span 3; }
+        .priority-card { grid-column: span 5; }
+        .log-container { 
+            grid-column: span 9; 
+            height: 400px; 
+            border-color: var(--terminal-green);
+            box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.2);
+            color: var(--terminal-green);
+            overflow-y: auto;
+            font-size: 0.85em;
+            background: #000;
         }
+        .sync-card { grid-column: span 3; }
 
-        .stat-box {
-            background: #3d3d3d;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: rgba(255, 23, 68, 0.05); padding: 10px; text-align: center; border: 1px solid rgba(255, 23, 68, 0.1); }
+        .stat-value { font-size: 2.2em; font-weight: bold; color: var(--primary-red); text-shadow: 0 0 5px var(--primary-red); }
+        .stat-label { font-size: 0.7em; color: var(--text-gold); }
 
-        .stat-value { font-size: 1.5em; font-weight: bold; color: var(--primary-red); }
-        .stat-label { font-size: 0.8em; color: #bbb; }
-
-        .agent-list { list-style: none; padding: 0; }
+        .agent-list { list-style: none; padding: 0; margin: 0; }
         .agent-item {
+            border-bottom: 1px dashed rgba(255, 23, 68, 0.3);
+            padding: 10px 0;
+            font-size: 0.8em;
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #444;
         }
-        .status-dot {
-            height: 10px;
-            width: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-        .online { background-color: #4caf50; }
-        .active { background-color: #2196f3; }
-
-        .log-container {
-            grid-column: span 2;
-            background: #000;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 15px;
-            border-radius: 4px;
-            height: 300px;
-            overflow-y: auto;
-            color: #00ff00;
-            font-size: 0.9em;
+        
+        progress {
+            width: 100%;
+            height: 12px;
+            accent-color: var(--primary-red);
+            background: #111;
+            border: 1px solid var(--terminal-green);
         }
 
-        @media (max-width: 800px) {
-            .log-container { grid-column: span 1; }
-        }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        .live-tag { color: var(--primary-red); animation: blink 1.5s infinite; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>ASGARDIAN TACTICAL MAP</h1>
-        <p>"This is the Claw Way" 🦞</p>
+        <div>
+            <h1>MISSION CONTROL : ASGARD</h1>
+            <div style="font-size: 0.7em; color: var(--text-gold);">[ SYSTEM_INITIALIZED // ORCHESTRATOR_BRUCE_ONLINE ]</div>
+        </div>
+        <div class="live-tag">● LIVE_DATA_STREAM</div>
     </div>
 
     <div class="dashboard-grid">
         <!-- Site Audit Stats -->
-        <div class="card" id="siteCard">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 id="currentSiteName">🏠 Benowa ELC</h2>
-                <select id="sitePicker" style="background:#3d3d3d; color:white; border:1px solid var(--primary-red); border-radius:4px; font-size:0.8em;">
+        <div class="card site-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 id="currentSiteName" style="border:none; margin:0;">🏠 LOADING...</h2>
+                <select id="sitePicker" style="background:#000; color:var(--terminal-green); border:1px solid var(--terminal-green); font-family:monospace; font-size:0.8em; padding:2px;">
                     <option value="Benowa ELC">Benowa ELC</option>
                 </select>
             </div>
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-value" id="activeDevices">0</div>
-                    <div class="stat-label">Active Assets</div>
+                    <div class="stat-value" id="activeDevices">00</div>
+                    <div class="stat-label">ACTIVE_ASSETS</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-value" id="missingAssets">0</div>
-                    <div class="stat-label">Missing/Risk</div>
+                    <div class="stat-value" id="missingAssets" style="color:var(--text-gold);">00</div>
+                    <div class="stat-label">RISK_DETECTED</div>
                 </div>
             </div>
-            <div style="margin-top:10px;">
+            <div style="margin-top:20px;">
                 <div class="stat-label" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <span>Audit Coverage</span>
+                    <span>COMPLIANCE_INDEX</span>
                     <span id="coveragePercent">0%</span>
                 </div>
-                <progress id="auditProgress" value="0" max="100" style="width:100%; height:12px;"></progress>
+                <progress id="auditProgress" value="0" max="100"></progress>
             </div>
-            <div id="siteHighRisks" style="margin-top:15px; font-size:0.85em; color:#ff5252; max-height:100px; overflow-y:auto;">
-                <!-- High risks like photo breaches populated here -->
+            <div id="siteHighRisks" style="margin-top:15px; font-size:0.75em; color:var(--primary-red); max-height:60px; overflow-y:auto;"></div>
+        </div>
+
+        <!-- Top 3 Needs Attention -->
+        <div class="card priority-card">
+            <h2>⚠️ PRIORITY_REMEDIATION_QUEUE</h2>
+            <div id="priorityList" style="font-size: 0.9em;">
+                <div class="stat-label">SCANNING_VULNERABILITIES...</div>
             </div>
         </div>
 
         <!-- Agent Status -->
-        <div class="card">
-            <h2>🛡️ Asgardian Team Status</h2>
+        <div class="card team-card">
+            <h2>🛡️ SQUAD_STATUS</h2>
             <ul class="agent-list">
-                <li class="agent-item">
-                    <span>Bruce (Orchestrator)</span>
-                    <span><span class="status-dot online"></span>Ready</span>
-                </li>
-                <li class="agent-item">
-                    <span>Odin (All-Father)</span>
-                    <span><span class="status-dot online"></span>Watching</span>
-                </li>
-                <li class="agent-item">
-                    <span>Thor (SOC Manager)</span>
-                    <span><span class="status-dot online"></span>Standby</span>
-                </li>
-                <li class="agent-item">
-                    <span>Lady Sif (SOC IR)</span>
-                    <span><span class="status-dot"></span>Ready</span>
-                </li>
-                <li class="agent-item">
-                    <span>Heimdall (Hunter)</span>
-                    <span><span class="status-dot active"></span>Scanning</span>
-                </li>
-                <li class="agent-item">
-                    <span>Loki (Triage)</span>
-                    <span><span class="status-dot"></span>Shadowing</span>
-                </li>
+                <li class="agent-item"><span>ODIN</span> <span>[WATCHING]</span></li>
+                <li class="agent-item" style="color:var(--text-gold);"><span>BRUCE</span> <span>[ORCHESTRATING]</span></li>
+                <li class="agent-item"><span>THOR</span> <span>[STANDBY]</span></li>
+                <li class="agent-item"><span>LADY_SIF</span> <span>[READY]</span></li>
+                <li class="agent-item" style="color:#2196f3;"><span>HEIMDALL</span> <span>[SCANNING]</span></li>
+                <li class="agent-item"><span>LOKI</span> <span>[SHADOWING]</span></li>
             </ul>
-        </div>
-
-        <!-- Infrastructure Health -->
-        <div class="card">
-            <h2>⛓️ Persistence & Sync</h2>
-            <div class="agent-item">
-                <span>Supabase Telemetry</span>
-                <span style="color:#4caf50;">Connected</span>
-            </div>
-            <div class="agent-item">
-                <span>GitHub Main Backup</span>
-                <span id="githubStatus" style="color:var(--text-gold);">Sync Pending</span>
-            </div>
-            <div class="agent-item">
-                <span>SharePoint Bridge</span>
-                <span style="color:#4caf50;">Active</span>
-            </div>
-        </div>
-
-        <!-- Top 3 Needs Attention -->
-        <div class="card">
-            <h2>⚠️ Priority Remediation</h2>
-            <div id="priorityList" style="font-size: 0.9em;">
-                <div class="stat-label">Scanning for highest risks...</div>
-            </div>
         </div>
 
         <!-- Live Intelligence Feed -->
         <div class="card log-container" id="intelligenceFeed">
-            <div style="color:var(--text-gold); border-bottom:1px solid #333; margin-bottom:10px;">> ACCESSING LIVE INTELLIGENCE FEED...</div>
-            <div>[01:36:05] Bruce: Initiated Dashboard Project.</div>
-            <div>[01:34:22] Heartbeat: Performed workspace backup to GitHub.</div>
-            <div>[00:54:10] Standard Audit Procedure: Locked as standard protocol.</div>
-            <div>[00:52:02] SharePoint: report_Benowa_ELC_2026-05-04.docx uploaded.</div>
+            <div style="color:var(--text-gold); border-bottom:1px solid rgba(0, 230, 118, 0.3); margin-bottom:10px; font-size: 0.8em; position:sticky; top:0; background:#000;">> ACCESSING_ENCRYPTED_LOG_STREAM...</div>
+            <div id="logContent">
+                <div>[01:36:05] Bruce: Initiated Dashboard Project.</div>
+                <div>[01:34:22] Heartbeat: Performed workspace backup to GitHub.</div>
+                <div>[00:54:10] Standard Audit Procedure: Locked as standard protocol.</div>
+                <div>[02:24:15] Mission Control: Applying visual HUD upgrade.</div>
+            </div>
             <div id="feedEnd"></div>
+        </div>
+
+        <!-- Infrastructure Health -->
+        <div class="card sync-card">
+            <h2>⛓️ PERSISTENCE_LINK</h2>
+            <div class="agent-item"><span>SUPABASE_DB</span> <span style="color:var(--terminal-green);">[CONNECTED]</span></div>
+            <div class="agent-item"><span>GITHUB_REMOTE</span> <span style="color:var(--text-gold);">[SYNCING]</span></div>
+            <div class="agent-item"><span>GRAPH_API_SP</span> <span style="color:var(--terminal-green);">[ACTIVE]</span></div>
         </div>
     </div>
 
@@ -216,7 +208,6 @@
             const currentSite = document.getElementById('sitePicker').value;
             document.getElementById('currentSiteName').innerText = `🏠 ${currentSite}`;
 
-            // 1. Refresh Site List
             const { data: sites } = await _supabase.from('sites').select('site_name');
             if (sites) {
                 const picker = document.getElementById('sitePicker');
@@ -224,56 +215,52 @@
                 picker.innerHTML = sites.map(s => `<option value="${s.site_name}" ${s.site_name === selected ? 'selected' : ''}>${s.site_name}</option>`).join('');
             }
 
-            // 2. Update Audit Stats for Selected Site
-            const { data: entries } = await _supabase.from('audit_entries').select('*').eq('site_name', currentSite);
+            const { data: entries } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', currentSite);
             
             if(entries) {
                 const uniqueSerials = [...new Set(entries.map(r => r.serial_number))];
                 const active = entries.filter(r => !r.ignore_flag && uniqueSerials.includes(r.serial_number));
                 const missing = entries.filter(r => r.ignore_flag && uniqueSerials.includes(r.serial_number));
                 
-                const activeCount = [...new Set(active.map(r => r.serial_number))].length;
-                const missingCount = [...new Set(missing.map(r => r.serial_number))].length;
+                const activeCount = active.length;
+                const missingCount = missing.length;
                 const total = activeCount + missingCount;
 
-                document.getElementById('activeDevices').innerText = activeCount;
-                document.getElementById('missingAssets').innerText = missingCount;
+                document.getElementById('activeDevices').innerText = activeCount.toString().padStart(2, '0');
+                document.getElementById('missingAssets').innerText = missingCount.toString().padStart(2, '0');
                 
                 const progress = total > 0 ? (activeCount / total) * 100 : 0;
                 document.getElementById('auditProgress').value = activeCount;
                 document.getElementById('auditProgress').max = total;
                 document.getElementById('coveragePercent').innerText = `${Math.round(progress)}%`;
 
-                // 3. Populate High Risk Feed (Photo Breaches)
-                const breaches = entries.filter(r => r.photos_count > 100);
+                const breaches = entries.filter(r => (r.photos_count || 0) > 100);
                 const riskDiv = document.getElementById('siteHighRisks');
-                riskDiv.innerHTML = breaches.length > 0 ? '<strong>⚠️ BREACH ALERTS:</strong><br>' + 
-                    breaches.map(b => `• ${b.serial_number}: ${b.photos_count} photos`).join('<br>') : '';
+                riskDiv.innerHTML = breaches.length > 0 ? '<strong>⚠️ BREACH_ALERTS:</strong><br>' + 
+                    breaches.map(b => `• ${b.serial_number}: ${b.photos_count} PHOTOS`).join('<br>') : '';
 
-                // 4. Top 3 Needs Attention (Remediation)
                 const needsAttention = entries
-                    .filter(r => !r.ignore_flag && (r.photos_count > 0 || r.onedrive_status === 'Failed' || (r.notes && r.notes.toLowerCase().includes('fail'))))
+                    .filter(r => !r.ignore_flag && ((r.photos_count || 0) > 0 || r.onedrive_status === 'Failed' || (r.notes && r.notes.toLowerCase().includes('fail'))))
                     .sort((a, b) => (b.photos_count || 0) - (a.photos_count || 0))
                     .slice(0, 3);
 
                 const priorityDiv = document.getElementById('priorityList');
                 priorityDiv.innerHTML = needsAttention.length > 0 ? 
                     needsAttention.map((r, i) => `
-                        <div class="agent-item" style="border-left: 3px solid ${i === 0 ? '#ff1744' : '#ff9100'}; padding-left: 10px; margin-bottom: 5px; background: #333;">
+                        <div class="agent-item" style="border-left: 3px solid ${i === 0 ? '#ff1744' : '#ff9100'}; padding-left: 10px; margin-bottom: 5px; background: rgba(51, 51, 51, 0.4);">
                             <div>
-                                <div style="color:var(--text-gold); font-weight:bold;">${r.devices?.assigned_user_room || 'Unknown'}</div>
-                                <div style="font-size:0.8em;">SN: ${r.serial_number}</div>
+                                <div style="color:var(--text-gold); font-weight:bold;">${r.devices?.assigned_user_room || 'UNKNOWN'}</div>
+                                <div style="font-size:0.7em;">SN: ${r.serial_number}</div>
                             </div>
                             <div style="text-align:right;">
-                                <div style="color:#ff5252; font-size:0.8em;">${r.photos_count > 0 ? r.photos_count + ' photos' : 'Sync Fail'}</div>
+                                <div style="color:#ff5252; font-size:0.8em;">${(r.photos_count || 0) > 0 ? r.photos_count + ' PHOTOS' : 'SYNC_FAIL'}</div>
                             </div>
                         </div>
-                    `).join('') : '<div class="stat-label">No immediate remediation required. Clean site!</div>';
+                    `).join('') : '<div class="stat-label">NO_IMMEDIATE_REMEDIATION_REQUIRED</div>';
             }
         }
 
         document.getElementById('sitePicker').addEventListener('change', updateDashboard);
-
         setInterval(updateDashboard, 30000);
         updateDashboard();
     </script>
