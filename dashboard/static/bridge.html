@@ -102,13 +102,15 @@
 
     <main class="main-stage">
         <section class="glass-card">
-            <h2>📍 Site Intelligence</h2>
-            <div class="stat-row"><span class="stat-label">Location</span> <span class="stat-val">Benowa ELC</span></div>
-            <div class="stat-row"><span class="stat-label">Security</span> <span class="stat-val">Hardened</span></div>
-            <div class="stat-row"><span class="stat-label">Status</span> <span class="stat-val" style="color:var(--terminal-green)">Synced</span></div>
+            <h2>📍 Infrastructure Intel</h2>
+            <div id="siteIntelContent">
+                <div class="stat-row"><span class="stat-label">Benowa ELC</span> <span class="stat-val">SECURED</span></div>
+                <div class="stat-row"><span class="stat-label">Ashmore ELC</span> <span class="stat-val">SECURED</span></div>
+                <div class="stat-row"><span class="stat-label">Carrara ELC</span> <span class="stat-val">SECURED</span></div>
+            </div>
             
             <div style="margin-top: auto;">
-                <div style="font-size: 0.65em; color: #666; margin-bottom: 8px; letter-spacing: 1px;">Data Integrity Index</div>
+                <div style="font-size: 0.65em; color: #666; margin-bottom: 8px; letter-spacing: 1px;">Global Security Index</div>
                 <div style="height: 8px; width: 100%; background: #111; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
                     <div style="width: 92%; height: 100%; background: linear-gradient(90deg, var(--primary-red), var(--terminal-green));"></div>
                 </div>
@@ -129,6 +131,13 @@
                 <div class="agent-mini-card"><div class="agent-avatar">🗡️</div><span class="agent-name">Sif</span><span class="agent-status">[READY]</span></div>
                 <div class="agent-mini-card"><div class="agent-avatar">💼</div><span class="agent-name">Phil</span><span class="agent-status">[WAIT]</span></div>
             </div>
+            
+            <h2 style="margin-top:20px;">🌐 Server Assets</h2>
+            <div id="serverList">
+                <div class="stat-row"><span class="stat-label">OpenClaw Primary</span> <span class="stat-val" style="color:var(--terminal-green)">ONLINE</span></div>
+                <div class="stat-row"><span class="stat-label">Ollama Node .102</span> <span class="stat-val" style="color:var(--accent-gold)">SYNCING</span></div>
+                <div class="stat-row"><span class="stat-label">Supabase DB</span> <span class="stat-val" style="color:var(--terminal-green)">CONNECTED</span></div>
+            </div>
         </section>
     </main>
 
@@ -139,7 +148,19 @@
             reports: '_blank'
         };
 
-        function loadView(key) {
+        async function updateServerStats() {
+            // Placeholder for future live pings, currently static + local logic
+            const siteIntel = document.getElementById('siteIntelContent');
+            const { data: sites } = await _supabase.from('sites').select('site_name');
+            if (sites) {
+                siteIntel.innerHTML = sites.map(s => `
+                    <div class="stat-row">
+                        <span class="stat-label">${s.site_name}</span> 
+                        <span class="stat-val" style="color:var(--terminal-green)">SECURED</span>
+                    </div>
+                `).join('');
+            }
+        }
             // UI Visual Update
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             const btn = document.getElementById('btn-' + key);
