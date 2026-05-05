@@ -28,7 +28,8 @@
         }
       },
       "workspace": "/data/workspace"
-    }
+    },
+    "allowedAgents": "*"
   },
   "tools": {
     "profile": "coding"
@@ -45,7 +46,7 @@
   "gateway": {
     "port": 18789,
     "mode": "local",
-    "bind": "loopback",
+    "bind": "any",
     "controlUi": {
       "allowedOrigins": [
         "http://localhost:8080"
