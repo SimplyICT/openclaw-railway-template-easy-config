@@ -192,50 +192,70 @@
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Version Control for Log
+        const HUD_VERSION = "2.0.6";
+
         async function updateDashboard() {
-            console.log("HUD_REFRESH_INITIATED");
-            const currentSite = document.getElementById('sitePicker').value;
-            document.getElementById('currentSiteName').innerText = `🏠 ${currentSite}`;
+            try {
+                console.log(`[${new Date().toLocaleTimeString()}] HUD_SYNC_START`);
+                const currentSite = document.getElementById('sitePicker').value;
+                document.getElementById('currentSiteName').innerText = `🏠 ${currentSite}`;
 
-            const { data: sites } = await _supabase.from('sites').select('site_name');
-            if (sites) {
-                const picker = document.getElementById('sitePicker');
-                const selected = picker.value;
-                picker.innerHTML = sites.map(s => `<option value="${s.site_name}" ${s.site_name === selected ? 'selected' : ''}>${s.site_name}</option>`).join('');
-            }
+                const { data: sites } = await _supabase.from('sites').select('site_name');
+                if (sites) {
+                    const picker = document.getElementById('sitePicker');
+                    const selected = picker.value;
+                    picker.innerHTML = sites.map(s => `<option value="${s.site_name}" ${s.site_name === selected ? 'selected' : ''}>${s.site_name}</option>`).join('');
+                }
 
-            const { data: entries } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', currentSite);
-            
-            if(entries) {
-                const uniqueSerials = [...new Set(entries.map(r => r.serial_number))];
-                const active = entries.filter(r => !r.ignore_flag && uniqueSerials.includes(r.serial_number));
-                const missing = entries.filter(r => r.ignore_flag && uniqueSerials.includes(r.serial_number));
+                const { data: entries, error } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', currentSite);
                 
-                document.getElementById('activeDevices').innerText = active.length.toString().padStart(2, '0');
-                document.getElementById('missingAssets').innerText = missing.length.toString().padStart(2, '0');
+                if (error) throw error;
+
+                if(entries) {
+                    const uniqueSerials = [...new Set(entries.map(r => r.serial_number))];
+                    const active = entries.filter(r => !r.ignore_flag);
+                    const missing = entries.filter(r => r.ignore_flag);
+                    
+                    document.getElementById('activeDevices').innerText = active.length.toString().padStart(2, '0');
+                    document.getElementById('missingAssets').innerText = missing.length.toString().padStart(2, '0');
+                    
+                    const total = active.length + missing.length;
+                    const progress = total > 0 ? (active.length / total) * 100 : 0;
+                    document.getElementById('auditProgress').value = active.length;
+                    document.getElementById('auditProgress').max = total;
+                    document.getElementById('coveragePercent').innerText = `${Math.round(progress)}%`;
+
+                    const needsAttention = entries
+                        .filter(r => !r.ignore_flag && ((r.photos_count || 0) > 100 || r.onedrive_status === 'Failed' || (r.notes && r.notes.toLowerCase().includes('fail'))))
+                        .sort((a,b) => (b.photos_count || 0) - (a.photos_count || 0))
+                        .slice(0,5);
+
+                    document.getElementById('priorityList').innerHTML = needsAttention.map(r => `
+                        <div class="agent-item">
+                            <span>${r.devices?.assigned_user_room || 'ERR'}</span>
+                            <span style="color:var(--primary-red);">${r.photos_count || 'FAIL'}</span>
+                        </div>`).join('');
+                }
                 
-                const total = active.length + missing.length;
-                const progress = total > 0 ? (active.length / total) * 100 : 0;
-                document.getElementById('auditProgress').value = active.length;
-                document.getElementById('auditProgress').max = total;
-                document.getElementById('coveragePercent').innerText = `${Math.round(progress)}%`;
+                // Visual Pulse to show refresh happened
+                const tag = document.querySelector('.live-tag');
+                tag.style.color = '#fff';
+                setTimeout(() => tag.style.color = 'var(--primary-red)', 500);
 
-                const needsAttention = entries
-                    .filter(r => !r.ignore_flag && ((r.photos_count || 0) > 100 || r.onedrive_status === 'Failed'))
-                    .sort((a,b) => (b.photos_count || 0) - (a.photos_count || 0))
-                    .slice(0,3);
-
-                document.getElementById('priorityList').innerHTML = needsAttention.map(r => `
-                    <div class="agent-item">
-                        <span>${r.devices?.assigned_user_room || 'ERR'}</span>
-                        <span style="color:var(--primary-red);">${r.photos_count || 'FAIL'}</span>
-                    </div>`).join('');
+            } catch (err) {
+                console.error("HUD_SYNC_ERROR:", err);
             }
         }
 
+        // Global interval setup
+        window.onload = () => {
+            updateDashboard();
+            setInterval(updateDashboard, 10000); // Aggressive 10s refresh for testing
+            console.log("HUD_ACTIVE_AUTO_REFRESH:10s");
+        };
+
         document.getElementById('sitePicker').addEventListener('change', updateDashboard);
-        setInterval(updateDashboard, 15000); // 15 seconds
-        updateDashboard();
     </script>
 </body>
 </html>
