@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦞 Asgard Bridge : v3.0.6</title>
+    <style>
+        :root {
+            --primary-red: #ff3d47;
+            --accent-gold: #ffca28;
+            --terminal-green: #00e676;
+            --soft-blue: #2196f3;
+            --glass-bg: rgba(15, 15, 20, 0.96);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --soft-edge: 18px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #08080a;
+            color: #f0f0f0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(255, 61, 71, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(33, 150, 243, 0.05) 0%, transparent 40%);
+        }
+
+        .command-bridge {
+            height: 70px;
+            background: rgba(8, 8, 10, 0.98);
+            border-bottom: 2px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .brand { font-weight: 800; color: var(--primary-red); letter-spacing: 3px; font-size: 1.3em; display: flex; align-items: center; }
+
+        .nav-items { display: flex; gap: 15px; }
+        .nav-item {
+            color: #888; text-decoration: none; font-size: 0.85em; text-transform: uppercase; font-weight: 600;
+            padding: 10px 25px; border-radius: 40px; transition: 0.4s;
+            border: 1px solid rgba(255,255,255,0.05); cursor: pointer; background: rgba(255,255,255,0.02);
+        }
+        .nav-item:hover, .nav-item.active { color: #fff !important; border-color: var(--primary-red) !important; background: rgba(255, 61, 71, 0.15) !important; }
+
+        .main-stage {
+            flex: 1; display: grid; grid-template-columns: 280px 1fr 300px; padding: 25px; gap: 20px; overflow: hidden;
+        }
+
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border); border-radius: var(--soft-edge);
+            padding: 24px; display: flex; flex-direction: column; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+
+        .glass-card h2 { margin: 0 0 20px 0; font-size: 0.8em; text-transform: uppercase; letter-spacing: 2.5px; color: var(--accent-gold); opacity: 0.8; }
+
+        .viewport { grid-column: 2; padding: 0; min-height: 0; height: 100%; }
+        #viewFrame { width: 100%; height: 100%; border: none; border-radius: 12px; background: rgba(0,0,0,0.4); display: block; }
+
+        .agent-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .agent-mini-card { background: rgba(255, 255, 255, 0.02); border-radius: 14px; padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .agent-name { font-size: 0.65em; font-weight: 700; display: block; margin-top: 4px; color: #ccc; }
+        .agent-status { font-size: 0.55em; color: var(--soft-blue); }
+
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 12px; }
+        .stat-label { font-size: 0.7em; color: #999; }
+        .stat-val { font-size: 0.7em; font-weight: 800; color: #fff; }
+
+        .live-pulse { width: 8px; height: 8px; background: var(--terminal-green); border-radius: 50%; display: inline-block; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+    <nav class="command-bridge">
+        <div class="brand">🦞 ASGARD <span style="font-size:0.4em; border: 1px solid #444; padding:2px 5px; border-radius:4px; margin-left:10px;">v3.0.6</span></div>
+        <div class="nav-items">
+            <button class="nav-item active" id="btn-hud" onclick="loadView('hud')">HUD</button>
+            <button class="nav-item" id="btn-audit" onclick="loadView('audit')">Audit Hub</button>
+            <button class="nav-item" id="btn-reports" onclick="loadView('reports')">Reports</button>
+        </div>
+        <div style="font-size: 0.65em; color: var(--terminal-green); font-weight: bold; letter-spacing: 1.5px;">
+            <span class="live-pulse"></span> BRIDGE_READY
+        </div>
+    </nav>
+
+    <main class="main-stage">
+        <section class="glass-card">
+            <h2>📍 Network Nodes</h2>
+            <div class="stat-row"><span class="stat-label">Secure SOC Central</span> <span class="stat-val" style="color:var(--terminal-green)">ONLINE</span></div>
+            <div class="stat-row"><span class="stat-label">Wazuh Manager</span> <span class="stat-val" style="color:var(--terminal-green)">ACTIVE</span></div>
+            <div class="stat-row"><span class="stat-label">Ollama .102</span> <span class="stat-val" style="color:var(--accent-gold)">STANDBY</span></div>
+            
+            <div style="margin-top: auto;">
+                <h2 style="font-size: 0.6em; margin-bottom: 10px;">Primary Site</h2>
+                <div class="stat-row" style="background: rgba(255, 61, 71, 0.05);">
+                    <span class="stat-label" style="color:#eee">Benowa ELC</span> 
+                    <span class="stat-val" style="color:var(--terminal-green)">SECURED</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="viewport glass-card">
+            <iframe id="viewFrame" name="viewFrame" src="https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/index.html"></iframe>
+        </section>
+
+        <section class="glass-card">
+            <h2>🛡️ Agent Squad</h2>
+            <div class="agent-gallery">
+                <div class="agent-mini-card"><div style="font-size:1.2em">🦞</div><span class="agent-name">Bruce</span><span class="agent-status">ONLINE</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.2em">⚡</div><span class="agent-name">Thor</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.2em">🕵️‍♂️</div><span class="agent-name">Loki</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.2em">👁️</div><span class="agent-name">Heimdall</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.2em">🗡️</div><span class="agent-name">Sif</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.2em">💼</div><span class="agent-name">Phil</span><span class="agent-status">READY</span></div>
+            </div>
+            
+            <h2 style="margin-top:25px;">📊 Integrity</h2>
+            <div style="height: 6px; width: 100%; background: #111; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="width: 95%; height: 100%; background: linear-gradient(90deg, var(--primary-red), var(--terminal-green));"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const views = {
+            hud: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/index.html',
+            audit: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit_hub_v57.html'
+        };
+
+        function loadView(key) {
+            console.log("Button clicked:", key);
+            
+            // 1. Update UI classes
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const activeBtn = document.getElementById('btn-' + key);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // 2. Handle Action
+            if (key === 'reports') {
+                window.open('https://cccex1.sharepoint.com/sites/bhelc-admin/Shared Documents/Forms/AllItems.aspx?id=/sites/bhelc-admin/Shared Documents/Audit reports', '_blank');
+            } else {
+                const frame = document.getElementById('viewFrame');
+                if (frame) {
+                    const cacheBust = views[key] + '?v=' + new Date().getTime();
+                    console.log("Loading into frame:", cacheBust);
+                    frame.src = cacheBust;
+                }
+            }
+        }
+        
+        // Manual sanity check
+        console.log("Bridge v3.0.6 fully loaded.");
+    </script>
+</body>
+</html>
