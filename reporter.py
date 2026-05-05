@@ -10,19 +10,22 @@ def generate_consolidated_report(site_name, target_date):
     
     supabase: Client = create_client(url, key)
     
-    # Fetch all entries for the site on the target date
-    # Note: Using audit_date which we've seen contains ISO timestamps
-    res = supabase.table('audit_entries').select('*, devices(*)').eq('site_name', site_name).gte('audit_date', f'{target_date}T00:00:00').lte('audit_date', f'{target_date}T23:59:59').execute()
+    # Precise Measurement: PostgreSQL doesn't like 'LIKE' on Timestamps. 
+    # Use GTE/LTE with explicit 00:00:00 to 23:59:59 bounds.
+    start_bound = f"{target_date}T00:00:00+00:00"
+    end_bound = f"{target_date}T23:59:59+00:00"
+    
+    res = supabase.table('audit_entries').select('*, devices(*)').eq('site_name', site_name).gte('audit_date', start_bound).lte('audit_date', end_bound).execute()
     data = res.data
 
     if not data:
         print(f"No records found for {site_name} on {target_date}.")
-        return
+        sys.exit(1) # Critical for the watcher to know it failed
 
     # --- 1. Executive Summary Logic ---
     active_devices = [r for r in data if not r.get('ignore_flag')]
     missing_assets = [r for r in data if r.get('ignore_flag')]
-    photo_breaches = [r for r in data if r.get('photos_count', 0) > 100] # Threshold example
+    photo_breaches = [r for r in data if r.get('photos_count', 0) > 100]
     sync_failures = [r for r in data if r.get('onedrive_status') == 'Failed' or 'failed' in (r.get('notes') or '').lower()]
 
     report = []
@@ -56,20 +59,15 @@ def generate_consolidated_report(site_name, target_date):
         dev = r.get('devices') or {}
         dtype = (dev.get('device_type') or "").lower()
         line = f"### {dev.get('assigned_user_room', 'Unassigned')}\n"
-        
-        # Base hardware info
         line += f"- **Device:** {dev.get('brand_model')} (SN: {r['serial_number']})\n"
         
-        # Conditionals for Tablets/Mobile
         if "tablet" in dtype or "phone" in dtype:
             line += f"  - **OS/Version:** iOS {r.get('ios_version') or 'N/A'}\n"
             line += f"  - **Photos:** {r.get('photos_count', 0)} (Total: {r.get('total_photos', 0)}) | Date: {r.get('photos_date') or 'N/A'}\n"
             line += f"  - **Sync:** Camera Sync Off: {'Yes' if r.get('camera_sync_off') else 'No'} | OneDrive Sync On: {'Yes' if r.get('onedrive_sync_on') else 'No'}\n"
-        
-        # Conditionals for Windows/PC
         elif "laptop" in dtype or "desktop" in dtype:
             line += f"  - **OS:** Windows {r.get('windows_os') or 'N/A'}\n"
-            line += f"  - **Updates:** {r.get('windows_updates') or 'N/A'}\n"
+            line += f"  - **Updates:** {r.get('update_status') or 'N/A'}\n"
             line += f"  - **Compliance:** OneDrive Status: {r.get('onedrive_status') or 'N/A'} | Security Check: {r.get('security_check') or 'N/A'}\n"
         
         line += f"  - **Status/Notes:** {r.get('notes') or 'N/A'}"
@@ -81,13 +79,10 @@ def generate_consolidated_report(site_name, target_date):
         report.append(f"- SN: {m['serial_number']} | Risk: {m.get('security_check', 'N/A')} | Action: {m.get('notes', 'N/A')}")
 
     final_report = "\n".join(report)
-    print(final_report)
-    
-    # Save to file
     filename = f"report_{site_name.replace(' ', '_')}_{target_date}.md"
     with open(filename, 'w') as f:
         f.write(final_report)
-    print(f"\nReport saved to {filename}")
+    print(f"Report saved to {filename}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

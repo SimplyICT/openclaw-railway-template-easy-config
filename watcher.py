@@ -1,6 +1,16 @@
 import os
 import time
 import subprocess
+import sys
+
+# 1. HARD-CODE PATHS
+VENV_PYTHON = "/data/workspace/venv/bin/python3"
+VENV_SITE_PACKAGES = "/data/workspace/venv/lib/python3.11/site-packages"
+
+# 2. ENSURE SYS PATH IS MODIFIED BEFORE IMPORTING SUPABASE
+if VENV_SITE_PACKAGES not in sys.path:
+    sys.path.insert(0, VENV_SITE_PACKAGES)
+
 from supabase import create_client, Client
 
 def start_watcher():
@@ -8,11 +18,11 @@ def start_watcher():
     key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpodnhqdWhnZnVkYXZ4cmZzYXNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njc5OTQxOSwiZXhwIjoyMDkyMzc1NDE5fQ.-Y38GK4eJ6ddTRnMKnoCF1iQIdmiwAYEbvuSeKTDd4E"
     supabase: Client = create_client(url, key)
 
-    print("🛡️ Asgardian Report Watcher Online. Listening for triggers...")
+    print(f"🛡️ Asgardian Report Watcher Online (PID {os.getpid()}). Listening...")
 
     while True:
         try:
-            # Poll for PENDING requests
+            # Poll for PENDING
             res = supabase.table('report_requests').select('*').eq('status', 'PENDING').execute()
             requests = res.data
 
@@ -22,21 +32,25 @@ def start_watcher():
                 date = req['target_date']
 
                 print(f"🚀 Trigger Detected: {site} for {date}")
-                
-                # Mark as PROCESSING
                 supabase.table('report_requests').update({'status': 'PROCESSING'}).eq('id', req_id).execute()
 
                 try:
-                    # Run the Chain
-                    subprocess.run(['python3', '/data/workspace/reporter.py', site, date], check=True)
-                    # Note: We might need to handle the .md filename safely
+                    # 3. FORCE ENVIRONMENT FOR SUBPROCESSES
+                    env = os.environ.copy()
+                    env["PYTHONPATH"] = VENV_SITE_PACKAGES
+                    
+                    # Run Chain
+                    print(f"Executing reporter...")
+                    subprocess.run([VENV_PYTHON, '/data/workspace/reporter.py', site, str(date)], check=True, env=env)
+                    
                     md_file = f"report_{site.replace(' ', '_')}_{date}.md"
                     if os.path.exists('/data/workspace/md_to_docx.py'):
-                        subprocess.run(['python3', '/data/workspace/md_to_docx.py', md_file], check=True)
+                        print(f"Executing converter...")
+                        subprocess.run([VENV_PYTHON, '/data/workspace/md_to_docx.py', md_file], check=True, env=env)
                     
-                    subprocess.run(['python3', '/data/workspace/sp_upload.py'], check=True)
+                    print(f"Executing upload...")
+                    subprocess.run([VENV_PYTHON, '/data/workspace/sp_upload.py'], check=True, env=env)
 
-                    # Mark as SUCCESS
                     supabase.table('report_requests').update({
                         'status': 'SUCCESS', 
                         'message': 'Report shipped to SharePoint!'
@@ -50,9 +64,9 @@ def start_watcher():
                         'message': str(e)
                     }).eq('id', req_id).execute()
 
-            time.sleep(5) # Poll every 5 seconds
+            time.sleep(5)
         except Exception as e:
-            print(f"Watcher encountered an error: {e}")
+            print(f"Watcher Loop Error: {e}")
             time.sleep(10)
 
 if __name__ == "__main__":

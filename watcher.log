@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/data/workspace/reporter.py", line 5, in <module>
+    from supabase import create_client, Client
+ModuleNotFoundError: No module named 'supabase'
+Traceback (most recent call last):
+  File "/data/workspace/reporter.py", line 5, in <module>
+    from supabase import create_client, Client
+ModuleNotFoundError: No module named 'supabase'
+Traceback (most recent call last):
+  File "/data/workspace/reporter.py", line 5, in <module>
+    from supabase import create_client, Client
+ModuleNotFoundError: No module named 'supabase'
