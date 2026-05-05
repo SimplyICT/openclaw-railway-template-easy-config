@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Asgard Audit Hub (v5.1)</title>
+    <title>🦞 Asgard Audit Hub (v5.5)</title>
     <style>
         body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
         .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
@@ -20,16 +20,13 @@
         h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
         .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
         .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
-        
         #btnMagic { background-color: #ff1744; border: 2px solid black; box-shadow: 0 0 10px rgba(255, 23, 68, 0.3); }
         #btnMagic:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
-    <h2>🛡️ Asgardian Audit Hub</h2>
-    
+    <h2>🛡️ Asgardian Audit Hub (v5.5)</h2>
     <div class="container">
-        <!-- FORM SIDE -->
         <div class="form-panel">
             <div class="site-manager">
                 <h3>Site Selection & Magic Report</h3>
@@ -37,13 +34,11 @@
                 <div style="display:flex; gap:5px;">
                     <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
                 </div>
-                
                 <div style="margin-top:20px; background:#fff0f0; padding:10px; border:1px solid #ff1744; border-radius:5px;">
                     <button id="btnMagic" onclick="triggerMagicReport()" style="width:100%; font-size:1.1em;">🚀 MAGIC_REPORT_UPLOAD</button>
                     <div id="reportStatus" style="font-size:0.75em; margin-top:8px; font-family:monospace; color:#d32f2f; text-align:center;">[ STANDBY ]</div>
                 </div>
             </div>
-
             <form id="auditForm">
                 <h3>New Audit Entry</h3>
                 <div class="grid">
@@ -54,67 +49,30 @@
                             <button type="button" id="fetchBtn" style="background:#1976d2; margin:0; white-space:nowrap;">Load History</button>
                         </div>
                     </div>
-
-                    <div>
-                        <label>Device Type</label>
-                        <select name="device_type" id="deviceTypeSelect">
-                            <option value="">-- Select Type --</option>
-                            <option value="Laptop">Laptop</option>
-                            <option value="Desktop">Desktop</option>
-                            <option value="Tablet">Tablet</option>
-                            <option value="Phone">Phone</option>
-                            <option value="Camera">Camera</option>
-                        </select>
-                    </div>
-
+                    <div><label>Device Type</label><select name="device_type" id="deviceTypeSelect"><option value="">-- Select Type --</option><option value="Laptop">Laptop</option><option value="Desktop">Desktop</option><option value="Tablet">Tablet</option><option value="Phone">Phone</option><option value="Camera">Camera</option></select></div>
                     <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
-                    
                     <div class="full-width audit-header">Compliance Data (Auto-Timestamped)</div>
                     <div><label>Windows OS</label><input type="text" name="windows_os"></div>
                     <div><label>iOS Version</label><input type="text" name="ios_version"></div>
                     <div><label>Updates Status</label><input type="text" name="update_status"></div>
                     <div><label>Security Check</label><input type="text" name="security_check"></div>
-                    
-                    <div>
-                        <label>Camera Sync Off</label>
-                        <select name="camera_sync_off">
-                            <option value="true">Yes</option>
-                            <option value="false" selected>No</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>OneDrive Sync On</label>
-                        <select name="onedrive_sync_on">
-                            <option value="true" selected>Yes</option>
-                            <option value="false">No</option>
-                        </select>
-                    </div>
-
+                    <div><label>Camera Sync Off</label><select name="camera_sync_off"><option value="true">Yes</option><option value="false" selected>No</option></select></div>
+                    <div><label>OneDrive Sync On</label><select name="onedrive_sync_on"><option value="true" selected>Yes</option><option value="false">No</option></select></div>
                     <div><label>Photos Count</label><input type="number" name="photos_count"></div>
                     <div><label>Photos Date</label><input type="date" name="photos_date"></div>
-                    
-                    <div class="full-width">
-                        <label>Audit Notes</label>
-                        <textarea name="notes" rows="2" placeholder="Site-specific findings..."></textarea>
-                    </div>
+                    <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="2" placeholder="Site-specific findings..."></textarea></div>
                 </div>
                 <div id="formError" class="error"></div>
                 <button type="submit" id="submitBtn" style="width:100%;">Commit Audit to Selected Site</button>
             </form>
         </div>
-
-        <!-- HISTORY SIDE -->
         <div class="history-panel">
             <h3>Todays Session Log (Current Site)</h3>
-            <div id="sessionLogTarget" style="margin-bottom: 20px; border-bottom: 2px solid #1976d2; padding-bottom: 10px;">
-                <div style="font-size:0.8em; color:#666;">Waiting for site data...</div>
-            </div>
-
+            <div id="sessionLogTarget" style="margin-bottom: 20px; border-bottom: 2px solid #1976d2; padding-bottom: 10px;"><div style="font-size:0.8em; color:#666;">Waiting for site data...</div></div>
             <h3>Site & Device Audit Logs (Full History)</h3>
             <div id="historyTarget">Select a site and serial number to view historical records.</div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
@@ -130,58 +88,54 @@
             const btn = document.getElementById('btnMagic');
             const status = document.getElementById('reportStatus');
             const siteName = siteSelect.value;
-            btn.disabled = true;
-            btn.innerText = "⌛ PROCESSING...";
-            status.innerText = "[ GEN_REPORTS > SHAREPOINT_SYNC ]";
+            const today = new Date().toISOString().split('T')[0];
+            btn.disabled = true; btn.innerText = "⌛ REQUESTING..."; status.innerText = "[ SENDING_TRIGGER_TO_SUPABASE ]";
             try {
-                const response = await fetch('https://openclaw-bruce-production.up.railway.app/api/generate-report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ site_name: siteName })
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    btn.style.background = '#4caf50';
-                    btn.innerText = "✅ UPLOADED";
-                    status.innerText = `[ SUCCESS: ${siteName.toUpperCase()} SHIPPED ]`;
-                } else { throw new Error(result.message); }
-            } catch (err) {
-                btn.style.background = 'orange'; btn.innerText = "❌ ERROR";
-                status.innerText = `[ FAIL: ${err.message.toUpperCase()} ]`;
-            } finally {
-                setTimeout(() => {
-                    btn.disabled = false; btn.innerText = "🚀 MAGIC_REPORT_UPLOAD"; btn.style.background = '#ff1744';
-                }, 5000);
-            }
+                const { data, error } = await _supabase.from('report_requests').insert([{ site_name: siteName, target_date: today, status: 'PENDING' }]).select();
+                if (error) throw error;
+                const reqId = data[0].id;
+                status.innerText = "[ TRIGGER_SENT // ASGARD_PROCESSING... ]";
+                let attempts = 0;
+                const poller = setInterval(async () => {
+                    attempts++;
+                    const { data: update } = await _supabase.from('report_requests').select('*').eq('id', reqId).single();
+                    if (update.status === 'SUCCESS') {
+                        clearInterval(poller); btn.style.background = '#4caf50'; btn.innerText = "✅ UPLOADED"; status.innerText = `[ SUCCESS: ${update.message.toUpperCase()} ]`; setTimeout(resetBtn, 5000);
+                    } else if (update.status === 'ERROR') {
+                        clearInterval(poller); btn.style.background = 'orange'; btn.innerText = "❌ FAILED"; status.innerText = `[ ERROR: ${update.message.toUpperCase()} ]`; setTimeout(resetBtn, 5000);
+                    } else if (attempts > 120) { clearInterval(poller); btn.innerText = "⚠️ TIMEOUT"; status.innerText = "[ ASGARD_NOT_RESPONDING ]"; setTimeout(resetBtn, 5000); }
+                }, 2000);
+            } catch (err) { btn.style.background = 'orange'; btn.innerText = "❌ TRIGGER_FAILED"; status.innerText = `[ ERROR: ${err.message.toUpperCase()} ]`; setTimeout(resetBtn, 5000); }
+            function resetBtn() { btn.disabled = false; btn.innerText = "🚀 MAGIC_REPORT_UPLOAD"; btn.style.background = '#ff1744'; }
         }
-
-        function toggleFields() {
-            const type = deviceTypeSelect.value;
-            const isMobile = (type === 'Tablet' || type === 'Phone');
-            const isComputer = (type === 'Laptop' || type === 'Desktop');
-            form.elements['windows_os'].disabled = !isComputer;
-            form.elements['ios_version'].disabled = !isMobile;
-            [form.elements['windows_os'], form.elements['ios_version']].forEach(el => el.style.backgroundColor = el.disabled ? '#eee' : 'white');
-        }
-
-        deviceTypeSelect.addEventListener('change', toggleFields);
 
         async function refreshSites() {
             const { data } = await _supabase.from('sites').select('site_name').order('site_name');
-            if (data) {
-                siteSelect.innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join('');
-            }
+            if (data) { siteSelect.innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join(''); loadSessionLog(); }
         }
         refreshSites();
+
+        siteSelect.addEventListener('change', loadSessionLog);
+
+        async function loadSessionLog() {
+            const site = siteSelect.value;
+            const target = document.getElementById('sessionLogTarget');
+            const today = new Date().toISOString().split('T')[0];
+            if (!site) return;
+            const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', site).gte('audit_date', today).order('audit_timestamp', { ascending: false });
+            if (data && data.length > 0) {
+                let html = '<table style="background:#e3f2fd; border: 1px solid #1976d2;"><tr><th>Room</th><th>User/Model</th><th>OS</th><th>Photos</th></tr>';
+                data.forEach(row => { html += `<tr><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.devices?.brand_model || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>${row.photos_count || 0}</td></tr>`; });
+                target.innerHTML = html + '</table>';
+            } else { target.innerHTML = '<div style="font-size:0.8em; background:#fff3e0; padding:10px; border:1px solid #ff9800; border-radius:4px;">No records entered today for this site.</div>'; }
+        }
 
         async function loadHistory(sn) {
             const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('serial_number', sn).order('audit_date', { ascending: false });
             const target = document.getElementById('historyTarget');
             if (data && data.length > 0) {
                 let html = '<table><tr><th>Date</th><th>Room</th><th>OS/Ver</th><th>Cloud</th><th>Notes</th></tr>';
-                data.forEach(row => {
-                    html += `<tr><td>${row.audit_date||'N/A'}</td><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>Cam:${row.camera_sync_off?'OFF':'ON'}/OD:${row.onedrive_sync_on?'ON':'OFF'}</td><td>${row.notes || ''}</td></tr>`;
-                });
+                data.forEach(row => { html += `<tr><td>${row.audit_date||'N/A'}</td><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>Cam:${row.camera_sync_off?'OFF':'ON'}/OD:${row.onedrive_sync_on?'ON':'OFF'}</td><td>${row.notes || ''}</td></tr>`; });
                 target.innerHTML = html + '</table>';
             } else { target.innerHTML = '<strong>No records found.</strong>'; }
         }
@@ -190,35 +144,24 @@
             const sn = document.getElementById('serial_number').value.trim();
             if (!sn) return;
             const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
-            if (device) {
-                form.elements['device_type'].value = device.device_type || '';
-                form.elements['brand_model'].value = device.brand_model || '';
-                toggleFields();
-            }
+            if (device) { form.elements['device_type'].value = device.device_type || ''; form.elements['brand_model'].value = device.brand_model || ''; toggleFields(); }
             loadHistory(sn);
         });
 
         form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            formError.textContent = '';
+            e.preventDefault(); formError.textContent = '';
             const site = siteSelect.value;
             const formData = new FormData(form);
             const rawData = Object.fromEntries(formData.entries());
             try {
                 await _supabase.from('devices').upsert({ serial_number: rawData.serial_number, device_type: rawData.device_type, brand_model: rawData.brand_model });
-                const { error } = await _supabase.from('audit_entries').insert([{
-                    serial_number: rawData.serial_number, site_name: site, windows_os: rawData.windows_os, ios_version: rawData.ios_version,
-                    update_status: rawData.update_status, security_check: rawData.security_check,
-                    camera_sync_off: rawData.camera_sync_off === 'true', onedrive_sync_on: rawData.onedrive_sync_on === 'true',
-                    photos_count: parseInt(rawData.photos_count) || 0, photos_date: rawData.photos_date || null, notes: rawData.notes
-                }]);
+                const { error } = await _supabase.from('audit_entries').insert([{ serial_number: rawData.serial_number, site_name: site, windows_os: rawData.windows_os, ios_version: rawData.ios_version, update_status: rawData.update_status, security_check: rawData.security_check, camera_sync_off: rawData.camera_sync_off === 'true', onedrive_sync_on: rawData.onedrive_sync_on === 'true', photos_count: parseInt(rawData.photos_count) || 0, photos_date: rawData.photos_date || null, notes: rawData.notes }]);
                 if (error) throw error;
-                alert(`Audit committed for ${site}! 🦞`);
-                loadSessionLog(); // Refresh session log immediately
-                loadHistory(rawData.serial_number);
-                form.elements['notes'].value = '';
+                alert(`Audit committed for ${site}! 🦞`); loadSessionLog(); loadHistory(rawData.serial_number); form.elements['notes'].value = '';
             } catch (err) { formError.textContent = `Error: ${err.message}`; }
         });
+        function toggleFields() { const type = deviceTypeSelect.value; const isMobile = (type === 'Tablet' || type === 'Phone'); const isComputer = (type === 'Laptop' || type === 'Desktop'); form.elements['windows_os'].disabled = !isComputer; form.elements['ios_version'].disabled = !isMobile; [form.elements['windows_os'], form.elements['ios_version']].forEach(el => el.style.backgroundColor = el.disabled ? '#eee' : 'white'); }
+        deviceTypeSelect.addEventListener('change', toggleFields);
     </script>
 </body>
 </html>
