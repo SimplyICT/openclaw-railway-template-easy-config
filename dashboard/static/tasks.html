@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asgard Tasks : Kanban</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0a0c;
+            --card-bg: rgba(25, 25, 30, 0.95);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #e0e0e0;
+            --blue: #3B82F6;
+            --amber: #F59E0B;
+            --green: #10B981;
+            --red: #EF4444;
+            --purple: #8B5CF6;
+            --cyan: #06B6D4;
+            --gray: #6B7280;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* PRODUCTIVITY OVERVIEW BAR */
+        .overview-bar {
+            height: 120px;
+            background: rgba(15, 15, 20, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        .chart-container { width: 80px; height: 80px; }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 15px;
+            min-width: 100px;
+            text-align: center;
+        }
+        .stat-card.blue { border-color: var(--blue); box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
+        .stat-card.amber { border-color: var(--amber); box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+        .stat-card.green { border-color: var(--green); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+
+        .stat-count { font-size: 1.2em; font-weight: bold; display: block; }
+        .stat-label { font-size: 0.7em; color: #888; text-transform: uppercase; }
+
+        .motivational-pill {
+            margin-left: auto;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--green);
+            border: 1px solid var(--green);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+
+        /* FILTER BAR */
+        .filter-bar {
+            padding: 10px 20px;
+            background: rgba(20, 20, 25, 0.5);
+            display: flex;
+            gap: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        select {
+            background: #1a1a20; color: #fff; border: 1px solid var(--border-color);
+            padding: 5px 12px; border-radius: 6px; font-size: 0.85em;
+        }
+
+        /* KANBAN BOARD */
+        .kanban-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            flex: 1;
+            overflow-x: auto;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            background: transparent;
+            min-width: 300px;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px 15px 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 100px;
+            padding: 5px;
+        }
+        .task-list.drag-over { background: rgba(255,255,255,0.03); border-radius: 10px; }
+
+        /* CARD DESIGN */
+        .task-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: grab;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .task-card:active { cursor: grabbing; transform: scale(1.02); }
+
+        .card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .check-circle { 
+            width: 18px; height: 18px; border: 2px solid var(--border-color); 
+            border-radius: 50%; flex-shrink: 0; cursor: pointer;
+        }
+        .task-card.done .check-circle { background: var(--green); border-color: var(--green); }
+        .task-title { font-weight: bold; font-size: 0.95em; flex: 1; }
+
+        .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .pill { 
+            font-size: 0.65em; font-weight: 800; padding: 3px 8px; 
+            border-radius: 10px; text-transform: uppercase; 
+        }
+
+        /* Pill Colors */
+        .cat-it { background: rgba(139, 92, 246, 0.15); color: var(--purple); }
+        .cat-sec { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+        .cat-dev { background: rgba(16, 185, 129, 0.15); color: var(--green); }
+        .cat-ops { background: rgba(6, 182, 212, 0.15); color: var(--cyan); }
+        
+        .prio-urgent { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+        .prio-normal { background: rgba(59, 130, 246, 0.2); color: var(--blue); }
+        .prio-someday { background: rgba(107, 114, 128, 0.2); color: var(--gray); }
+
+        .track-on { border: 1px solid var(--green); color: var(--green); }
+        .track-risk { border: 1px solid var(--amber); color: var(--amber); }
+        .track-off { border: 1px solid var(--red); color: var(--red); }
+
+        .card-footer { font-size: 0.7em; color: #666; display: flex; justify-content: space-between; }
+        .menu-dots { cursor: pointer; padding: 0 5px; }
+
+        /* ADD TASK FORM */
+        .add-btn {
+            background: transparent; color: #888; border: none; padding: 10px;
+            text-align: left; cursor: pointer; font-size: 0.9em; font-weight: 600;
+        }
+        .add-btn:hover { color: #fff; }
+
+        .inline-form {
+            background: var(--card-bg); border: 1px solid var(--blue);
+            border-radius: 12px; padding: 15px; margin-bottom: 12px;
+        }
+        .inline-form input, .inline-form select {
+            width: 100%; margin-bottom: 8px; background: #000; color: #fff;
+            border: 1px solid #333; padding: 6px; border-radius: 4px; box-sizing: border-box;
+        }
+        .form-btns { display: flex; gap: 10px; }
+        .btn-save { background: var(--blue); color: #fff; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-cancel { background: transparent; color: #888; border: none; cursor: pointer; }
+
+        /* MODAL */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .modal-content { background: #1a1a23; padding: 30px; border-radius: 15px; width: 400px; border: 1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+
+    <div class="overview-bar">
+        <div class="chart-container">
+            <canvas id="prodChart"></canvas>
+        </div>
+        <div class="stat-card blue">
+            <span class="stat-count" id="todo-count">0</span>
+            <span class="stat-label">To Do</span>
+        </div>
+        <div class="stat-card amber">
+            <span class="stat-count" id="progress-count">0</span>
+            <span class="stat-label">Doing</span>
+        </div>
+        <div class="stat-card green">
+            <span class="stat-count" id="done-count">0</span>
+            <span class="stat-label">Done</span>
+        </div>
+        <div class="motivational-pill" id="motivation">Just getting started — let's go! 🚀</div>
+    </div>
+
+    <div class="filter-bar">
+        <select id="filterCategory" onchange="renderBoard()">
+            <option value="All">All Categories</option>
+            <option value="IT Ops">IT Ops</option>
+            <option value="Security">Security</option>
+            <option value="Development">Development</option>
+            <option value="Personnel">Personnel</option>
+        </select>
+        <select id="filterPriority" onchange="renderBoard()">
+            <option value="All">All Priorities</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Normal">Normal</option>
+            <option value="Someday">Someday</option>
+        </select>
+    </div>
+
+    <div class="kanban-container">
+        <div class="column" id="col-todo">
+            <div class="column-header"><span>To Do</span> <span class="count-badge" id="head-todo">0</span></div>
+            <div class="task-list" id="list-todo" data-status="todo"></div>
+            <button class="add-btn" onclick="showInlineForm('todo')">+ Add Task</button>
+        </div>
+        <div class="column" id="col-inprogress">
+            <div class="column-header"><span>Doing</span> <span class="count-badge" id="head-inprogress">0</span></div>
+            <div class="task-list" id="list-inprogress" data-status="in_progress"></div>
+            <button class="add-btn" onclick="showInlineForm('in_progress')">+ Add Task</button>
+        </div>
+        <div class="column" id="col-done">
+            <div class="column-header"><span>Done</span> <span class="count-badge" id="head-done">0</span></div>
+            <div class="task-list" id="list-done" data-status="done"></div>
+            <button class="add-btn" onclick="showInlineForm('done')">+ Add Task</button>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h3>Edit Task</h3>
+            <input type="hidden" id="editId">
+            <label>Title</label><input type="text" id="editTitle" style="width:100%; margin-bottom:15px; background:#000; color:#fff; border:1px solid #333; padding:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label>Category</label><select id="editCategory" style="width:100%"><option>IT Ops</option><option>Security</option><option>Development</option><option>Personnel</option></select></div>
+                <div><label>Priority</label><select id="editPriority" style="width:100%"><option>Urgent</option><option>Normal</option><option>Someday</option></select></div>
+                <div><label>Track Status</label><select id="editTrack" style="width:100%"><option>On Track</option><option>At Risk</option><option>Off Track</option></select></div>
+                <div><label>Due Date</label><input type="date" id="editDue" style="width:100%; background:#000; color:#fff; border:1px solid #333; padding:5px;"></div>
+            </div>
+            <div class="form-btns" style="margin-top:20px; justify-content:flex-end;">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-save" onclick="saveEdit()">Confirm Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allTasks = [];
+        let chartInstance = null;
+
+        async function fetchTasks() {
+            const { data, error } = await _supabase.from('todos').select('*').order('created_at', { ascending: false });
+            if (data) {
+                allTasks = data;
+                renderBoard();
+                updateStats();
+            }
+        }
+
+        function renderBoard() {
+            const catFilter = document.getElementById('filterCategory').value;
+            const prioFilter = document.getElementById('filterPriority').value;
+
+            const filtered = allTasks.filter(t => 
+                (catFilter === 'All' || t.category === catFilter) &&
+                (prioFilter === 'All' || t.priority === prioFilter)
+            );
+
+            const statuses = ['todo', 'in_progress', 'done'];
+            statuses.forEach(s => {
+                const list = document.getElementById('list-' + (s === 'in_progress' ? 'inprogress' : s));
+                const countHead = document.getElementById('head-' + (s === 'in_progress' ? 'inprogress' : s));
+                const tasks = filtered.filter(t => t.status === s);
+                
+                countHead.innerText = tasks.length;
+                list.innerHTML = tasks.map(t => createTaskCard(t)).join('');
+            });
+        }
+
+        function createTaskCard(t) {
+            const catClass = t.category === 'IT Ops' ? 'cat-it' : t.category === 'Security' ? 'cat-sec' : t.category === 'Development' ? 'cat-dev' : 'cat-ops';
+            const prioClass = t.priority === 'Urgent' ? 'prio-urgent' : t.priority === 'Normal' ? 'prio-normal' : 'prio-someday';
+            const trackClass = t.track_status === 'On Track' ? 'track-on' : t.track_status === 'At Risk' ? 'track-risk' : 'track-off';
+            
+            return `
+                <div class="task-card ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}">
+                    <div class="card-top">
+                        <div class="check-circle" onclick="toggleComplete('${t.id}', ${t.completed})"></div>
+                        <div class="task-title">${t.title}</div>
+                        <div class="menu-dots" onclick="openMenu('${t.id}')">⋮</div>
+                    </div>
+                    <div class="tag-row">
+                        <span class="pill ${catClass}">${t.category}</span>
+                        <span class="pill ${prioClass}">${t.priority}</span>
+                        <span class="pill ${trackClass}">${t.track_status}</span>
+                    </div>
+                    <div class="card-footer">
+                        <span>📅 ${t.due_date || 'No Date'}</span>
+                    </div>
+                </div>`;
+        }
+
+        // DRAG AND DROP
+        document.querySelectorAll('.task-list').forEach(el => {
+            new Sortable(el, {
+                group: 'tasks',
+                animation: 150,
+                ghostClass: 'drag-over',
+                onEnd: async (evt) => {
+                    const taskId = evt.item.getAttribute('data-id');
+                    const newStatus = evt.to.getAttribute('data-status');
+                    allTasks.find(t => t.id == taskId).status = newStatus;
+                    await _supabase.from('todos').update({ status: newStatus }).eq('id', taskId);
+                    updateStats();
+                }
+            });
+        });
+
+        function updateStats() {
+            const todo = allTasks.filter(t => t.status === 'todo').length;
+            const doing = allTasks.filter(t => t.status === 'in_progress').length;
+            const done = allTasks.filter(t => t.status === 'done').length;
+            const total = allTasks.length || 1;
+
+            document.getElementById('todo-count').innerText = todo + ` (${Math.round(todo/total*100)}%)`;
+            document.getElementById('progress-count').innerText = doing + ` (${Math.round(doing/total*100)}%)`;
+            document.getElementById('done-count').innerText = done + ` (${Math.round(done/total*100)}%)`;
+
+            const pc = (done / total) * 100;
+            const m = document.getElementById('motivation');
+            if (pc <= 30) m.innerText = "Just getting started — let's go! 🚀";
+            else if (pc <= 60) m.innerText = "Good progress — keep pushing! 💪";
+            else if (pc <= 90) m.innerText = "Almost there — finish strong! 🔥";
+            else m.innerText = "Outstanding — you crushed it! 🏆";
+
+            updateChart(todo, doing, done);
+        }
+
+        function updateChart(todo, doing, done) {
+            const ctx = document.getElementById('prodChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [todo, doing, done],
+                        backgroundColor: ['#3B82F6', '#F59E0B', '#10B981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { cutout: '70%', plugins: { legend: { display: false } } }
+            });
+        }
+
+        function showInlineForm(status) {
+            const list = document.getElementById('list-' + (status === 'in_progress' ? 'inprogress' : status));
+            const formHtml = `
+                <div class="inline-form" id="temp-form">
+                    <input type="text" id="newTitle" placeholder="Task Title" autofocus>
+                    <select id="newCat"><option>IT Ops</option><option>Security</option><option>Development</option><option>Personnel</option></select>
+                    <select id="newPrio"><option>Urgent</option><option>Normal</option><option>Someday</option></select>
+                    <select id="newTrack"><option>On Track</option><option>At Risk</option><option>Off Track</option></select>
+                    <input type="date" id="newDue">
+                    <div class="form-btns">
+                        <button class="btn-save" onclick="saveNewTask('${status}')">Save</button>
+                        <button class="btn-cancel" onclick="removeTempForm()">Cancel</button>
+                    </div>
+                </div>`;
+            list.insertAdjacentHTML('beforeend', formHtml);
+        }
+
+        async function saveNewTask(status) {
+            const task = {
+                title: document.getElementById('newTitle').value,
+                category: document.getElementById('newCat').value,
+                priority: document.getElementById('newPrio').value,
+                track_status: document.getElementById('newTrack').value,
+                due_date: document.getElementById('newDue').value,
+                status: status,
+                completed: false
+            };
+            const { data } = await _supabase.from('todos').insert([task]).select();
+            if (data) {
+                allTasks.unshift(data[0]);
+                removeTempForm();
+                renderBoard();
+                updateStats();
+            }
+        }
+
+        function removeTempForm() { document.getElementById('temp-form')?.remove(); }
+
+        function openMenu(id) {
+            const t = allTasks.find(x => x.id == id);
+            document.getElementById('editId').value = t.id;
+            document.getElementById('editTitle').value = t.title;
+            document.getElementById('editCategory').value = t.category;
+            document.getElementById('editPriority').value = t.priority;
+            document.getElementById('editTrack').value = t.track_status;
+            document.getElementById('editDue').value = t.due_date;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        async function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const updates = {
+                title: document.getElementById('editTitle').value,
+                category: document.getElementById('editCategory').value,
+                priority: document.getElementById('editPriority').value,
+                track_status: document.getElementById('editTrack').value,
+                due_date: document.getElementById('editDue').value
+            };
+            await _supabase.from('todos').update(updates).eq('id', id);
+            Object.assign(allTasks.find(t => t.id == id), updates);
+            closeModal();
+            renderBoard();
+        }
+
+        window.onload = fetchTasks;
+    </script>
+</body>
+</html>
