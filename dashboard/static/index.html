@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Mission Control : Asgard [v2.0.7]</title>
+    <title>🦞 Mission Control : Asgard [v2.0.8]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -119,13 +119,14 @@
 <body>
     <div class="header">
         <div>
-            <h1>MISSION CONTROL : ASGARD [v2.0.7]</h1>
+            <h1>MISSION CONTROL : ASGARD [v2.0.8]</h1>
             <div style="font-size: 0.7em; color: var(--text-gold);">[ SYSTEM_INITIALIZED // ORCHESTRATOR_BRUCE_ONLINE ]</div>
         </div>
-        <div class="live-tag" id="refreshIndicator">● DATA_REFRESH_ACTIVE</div>
+        <div class="live-tag">● DATA_REFRESH_ACTIVE</div>
     </div>
 
     <div class="dashboard-grid">
+        <!-- Site Audit Stats -->
         <div class="card site-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h2 id="currentSiteName" style="border:none; margin:0;">🏠 INITIALIZING...</h2>
@@ -150,9 +151,12 @@
                 </div>
                 <progress id="auditProgress" value="0" max="100"></progress>
             </div>
-            <div id="siteHighRisks" style="margin-top:15px; font-size:0.75em; color:var(--primary-red); max-height:60px; overflow-y:auto;"></div>
+            <div id="siteHighRisks" style="margin-top:15px; font-size:0.75em; color:var(--primary-red); max-height:80px; overflow-y:auto;">
+                <!-- Risky ones listed here -->
+            </div>
         </div>
 
+        <!-- Top 3 Needs Attention -->
         <div class="card priority-card">
             <h2>⚠️ PRIORITY_REMEDIATION_QUEUE</h2>
             <div id="priorityList" style="font-size: 0.9em;">
@@ -160,6 +164,7 @@
             </div>
         </div>
 
+        <!-- Agent Status -->
         <div class="card team-card">
             <h2>🛡️ SQUAD_STATUS</h2>
             <ul class="agent-list">
@@ -171,15 +176,17 @@
             </ul>
         </div>
 
+        <!-- Live Intelligence Feed -->
         <div class="card log-container" id="intelligenceFeed">
             <div style="color:var(--text-gold); border-bottom:1px solid rgba(0, 230, 118, 0.3); margin-bottom:10px; font-size: 0.8em; position:sticky; top:0; background:#000;">> ENCRYPTED_LOG_STREAM</div>
             <div id="logContent"></div>
             <div id="feedEnd"></div>
         </div>
 
+        <!-- Infrastructure Health -->
         <div class="card sync-card">
             <h2>⛓️ PERSISTENCE_LINK</h2>
-            <div class="agent-item"><span>SUPABASE</span> <span style="color:var(--terminal-green);">[OK]</span></div>
+            <div class="agent-item"><span>SUPABASE</span> <span style="color:var(--terminal-green);">[CONNECTED]</span></div>
             <div class="agent-item"><span>GITHUB</span> <span style="color:var(--text-gold);">[PASS]</span></div>
             <div class="agent-item"><span>SHAREPOINT</span> <span style="color:var(--terminal-green);">[LINK]</span></div>
         </div>
@@ -192,12 +199,9 @@
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Version Control for Log
-        const HUD_VERSION = "2.0.7";
-
         async function updateDashboard() {
             try {
-                console.log(`[${new Date().toLocaleTimeString()}] HUD_SYNC_START`);
+                console.log("HUD_REFRESH_INITIATED");
                 const currentSite = document.getElementById('sitePicker').value;
                 document.getElementById('currentSiteName').innerText = `🏠 ${currentSite}`;
 
@@ -208,12 +212,9 @@
                     picker.innerHTML = sites.map(s => `<option value="${s.site_name}" ${s.site_name === selected ? 'selected' : ''}>${s.site_name}</option>`).join('');
                 }
 
-                const { data: entries, error } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', currentSite);
+                const { data: entries } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', currentSite);
                 
-                if (error) throw error;
-
                 if(entries) {
-                    const uniqueSerials = [...new Set(entries.map(r => r.serial_number))];
                     const active = entries.filter(r => !r.ignore_flag);
                     const missing = entries.filter(r => r.ignore_flag);
                     
@@ -226,33 +227,56 @@
                     document.getElementById('auditProgress').max = total;
                     document.getElementById('coveragePercent').innerText = `${Math.round(progress)}%`;
 
+                    // Populate Risky Assets List in Site Card
+                    const riskDiv = document.getElementById('siteHighRisks');
+                    riskDiv.innerHTML = missing.length > 0 ? 
+                        '<div style="color:var(--text-gold); font-weight:bold; margin-bottom:5px;">[ MISSING_ASSETS ]</div>' + 
+                        missing.map(m => `• SN: ${m.serial_number}`).join('<br>') : '';
+
+                    // Enhanced Priority Remediation with Reasons
                     const needsAttention = entries
                         .filter(r => !r.ignore_flag && ((r.photos_count || 0) > 100 || r.onedrive_status === 'Failed' || (r.notes && r.notes.toLowerCase().includes('fail'))))
                         .sort((a,b) => (b.photos_count || 0) - (a.photos_count || 0))
                         .slice(0,5);
 
-                    document.getElementById('priorityList').innerHTML = needsAttention.map(r => `
-                        <div class="agent-item">
-                            <span>${r.devices?.assigned_user_room || 'ERR'}</span>
-                            <span style="color:var(--primary-red);">${r.photos_count || 'FAIL'}</span>
-                        </div>`).join('');
+                    document.getElementById('priorityList').innerHTML = needsAttention.map(r => {
+                        let reason = "SYNC_ERROR";
+                        if ((r.photos_count || 0) > 100) reason = `LIABILITY: ${r.photos_count} PHOTOS`;
+                        else if (r.notes && r.notes.toLowerCase().includes('password')) reason = "AUTH_FAIL";
+                        return `<div class="agent-item" style="background:rgba(255, 23, 68, 0.1); padding:5px; margin-bottom:2px;">
+                            <span>${r.devices?.assigned_user_room || 'UNASSIGNED'}</span>
+                            <span style="color:var(--primary-red); font-weight:bold;">[${reason}]</span>
+                        </div>`;
+                    }).join('');
                 }
                 
-                // Visual Pulse to show refresh happened
+                // Visual Pulse
                 const tag = document.querySelector('.live-tag');
                 tag.style.color = '#fff';
                 setTimeout(() => tag.style.color = 'var(--primary-red)', 500);
 
             } catch (err) {
-                console.error("HUD_SYNC_ERROR:", err);
+                console.error("HUD_SYNC_ERROR", err);
             }
         }
 
-        // Global interval setup
+        async function fetchLogs() {
+            try {
+                const { data: logs } = await _supabase.from('chat_history').select('*').order('timestamp', { ascending: false }).limit(10);
+                if (logs) {
+                    document.getElementById('logContent').innerHTML = logs.map(l => `
+                        <div style="margin-bottom:8px; border-left: 2px solid var(--terminal-green); padding-left:10px;">
+                            <span style="color:var(--text-gold); font-size:0.8em;">[${new Date(l.timestamp).toLocaleTimeString()}]</span><br>
+                            ${l.summary}
+                        </div>`).join('');
+                }
+            } catch (err) { console.error("LOG_ERR", err); }
+        }
+
         window.onload = () => {
             updateDashboard();
-            setInterval(updateDashboard, 10000); // Aggressive 10s refresh for testing
-            console.log("HUD_ACTIVE_AUTO_REFRESH:10s");
+            fetchLogs();
+            setInterval(() => { updateDashboard(); fetchLogs(); }, 15000);
         };
 
         document.getElementById('sitePicker').addEventListener('change', updateDashboard);
