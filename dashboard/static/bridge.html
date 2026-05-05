@@ -136,7 +136,7 @@
         const views = {
             hud: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/index.html',
             audit: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit_hub_v57.html',
-            reports: 'https://cccex1.sharepoint.com/sites/bhelc-admin/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fbhelc%2Dadmin%2FShared%20Documents%2FAudit%20reports'
+            reports: '_blank'
         };
 
         function loadView(key) {
@@ -145,6 +145,11 @@
             const btn = document.getElementById('btn-' + key);
             if(btn) btn.classList.add('active');
             
+            if (key === 'reports') {
+                window.open('https://cccex1.sharepoint.com/sites/bhelc-admin/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fbhelc%2Dadmin%2FShared%20Documents%2FAudit%20reports', '_blank');
+                return;
+            }
+
             console.log("Loading view:", key);
             const frame = document.getElementById('viewFrame');
             
