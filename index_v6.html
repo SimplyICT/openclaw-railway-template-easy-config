@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Audit v6 (Merged)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 480px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input:disabled { background: #eee; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; width: 100%; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h3 { color: #333; margin: 0 0 10px; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h2>🦞 Compliance Audit Hub v6</h2>
+    <div class="container">
+        <div class="form-side">
+            <div class="site-manager">
+                <h3>Site Selection</h3>
+                <div style="display:flex; gap:5px;">
+                    <select id="siteSelect"><option value="">-- Select Site --</option></select>
+                    <button type="button" id="addSiteBtn" style="background:#4caf50; margin:0; width:auto;">+ New</button>
+                </div>
+            </div>
+
+            <form id="auditForm">
+                <h3>Audit Details</h3>
+                <div class="grid">
+                    <div class="full-width">
+                        <label>Serial Number (Lookup)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="serial_number" name="serial_number" required>
+                            <button type="button" id="fetchBtn" style="background:#1976d2; margin:0; width:auto;">Load</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>Device Type</label>
+                        <select name="device_type" id="deviceTypeSelect">
+                            <option value="">-- Select --</option>
+                            <option value="Laptop">Laptop</option>
+                            <option value="Desktop">Desktop</option>
+                            <option value="Tablet">Tablet</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Camera">Camera</option>
+                        </select>
+                    </div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    <div><label>Purchase Date</label><input type="date" name="date_of_purchase"></div>
+                    <div><label>User/Room</label><input type="text" name="assigned_user_room"></div>
+                    <div><label>Connectivity</label><input type="text" name="connectivity"></div>
+                    <div><label>Storage Caps</label><input type="text" name="recording_storage_capabilities"></div>
+                    <div class="full-width"><label>Intended Use</label><textarea name="intended_use" rows="1"></textarea></div>
+
+                    <div class="full-width" style="color:#d32f2f; font-weight:bold; border-top:1px solid #eee; padding-top:10px;">Audit Check</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Windows Updates</label><input type="text" name="windows_updates"></div>
+                    <div><label>Update Status</label><input type="text" name="update_status"></div>
+                    <div><label>OneDrive Status</label><input type="text" name="onedrive_status"></div>
+                    <div><label>Security Applied</label><input type="text" name="security_settings_applied"></div>
+                    <div class="full-width"><label>Security Check Notes</label><input type="text" name="security_check"></div>
+                    
+                    <div>
+                        <label>Camera Sync Off</label>
+                        <select name="camera_sync_off">
+                            <option value="true">Yes</option>
+                            <option value="false" selected>No</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>OneDrive Sync On</label>
+                        <select name="onedrive_sync_on">
+                            <option value="true" selected>Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+
+                    <div><label>Photos Count</label><input type="number" name="photos_count"></div>
+                    <div><label>Total Photos</label><input type="number" name="total_photos"></div>
+                    <div><label>Photos Date</label><input type="date" name="photos_date"></div>
+                    <div>
+                        <label>Ignore Flag</label>
+                        <select name="ignore_flag">
+                            <option value="false" selected>No</option>
+                            <option value="true">Yes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="full-width">
+                        <label>Audit Notes</label>
+                        <textarea name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div id="formError" class="error"></div>
+                <button type="submit">Commit Audit Entry</button>
+            </form>
+        </div>
+
+        <div class="history-panel">
+            <h3>Historical Trail</h3>
+            <div id="historyTarget">Search a serial to see logs.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+        const dType = document.getElementById('deviceTypeSelect');
+        const formError = document.getElementById('formError');
+
+        function toggle() {
+            const t = dType.value;
+            const isMobile = (t === 'Tablet' || t === 'Phone');
+            const isComputer = (t === 'Laptop' || t === 'Desktop');
+            form.elements['windows_os'].disabled = !isComputer;
+            form.elements['windows_updates'].disabled = !isComputer;
+            form.elements['ios_version'].disabled = !isMobile;
+        }
+
+        dType.addEventListener('change', toggle);
+
+        async function refresh() {
+            const { data } = await _supabase.from('sites').select('site_name').order('site_name');
+            if (data) {
+                document.getElementById('siteSelect').innerHTML = '<option value="">-- Select Site --</option>' + 
+                    data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join('');
+            }
+        }
+        refresh();
+
+        document.getElementById('addSiteBtn').addEventListener('click', async () => {
+            const n = prompt("New Site Name:");
+            if (n) {
+                await _supabase.from('sites').insert([{ site_name: n }]);
+                refresh();
+            }
+        });
+
+        async function load(sn) {
+            const { data } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_timestamp', { ascending: false });
+            const target = document.getElementById('historyTarget');
+            let h = '<table><tr><th>Date</th><th>Site</th><th>OS</th><th>Updates</th></tr>';
+            if (data && data.length) {
+                data.forEach(r => h += `<tr><td>${new Date(r.audit_timestamp || r.audit_date).toLocaleDateString()}</td><td>${r.site_name || '-'}</td><td>${r.windows_os || r.ios_version || '-'}</td><td>${r.windows_updates || '-'}</td></tr>`);
+                target.innerHTML = h + '</table>';
+            } else {
+                target.innerHTML = 'No records.';
+            }
+        }
+
+        document.getElementById('fetchBtn').addEventListener('click', async () => {
+            const sn = document.getElementById('serial_number').value.trim();
+            if (!sn) return;
+            const { data } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (data) {
+                Object.keys(data).forEach(k => {
+                    if (form.elements[k]) form.elements[k].value = data[k] || '';
+                });
+                toggle();
+            }
+            load(sn);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formError.textContent = '';
+            const s = document.getElementById('siteSelect').value;
+            if (!s) return alert('Select site!');
+
+            const r = Object.fromEntries(new FormData(form).entries());
+
+            try {
+                // STEP 1: UPSERT DEVICE (Strict hardware/identity table)
+                const { error: dErr } = await _supabase.from('devices').upsert({
+                    serial_number: r.serial_number,
+                    device_type: r.device_type,
+                    brand_model: r.brand_model,
+                    date_of_purchase: r.date_of_purchase || null,
+                    assigned_user_room: r.assigned_user_room,
+                    intended_use: r.intended_use,
+                    connectivity: r.connectivity,
+                    recording_storage_capabilities: r.recording_storage_capabilities
+                });
+                if (dErr) throw dErr;
+
+                // STEP 2: INSERT AUDIT (Strict compliance event table)
+                // We EXCLUDE device-table-only headers to prevent schema cache errors
+                const { error: aErr } = await _supabase.from('audit_entries').insert([{
+                    serial_number: r.serial_number,
+                    site_name: s,
+                    windows_os: r.windows_os,
+                    ios_version: r.ios_version,
+                    windows_updates: r.windows_updates,
+                    update_status: r.update_status,
+                    onedrive_status: r.onedrive_status,
+                    security_settings_applied: r.security_settings_applied,
+                    security_check: r.security_check,
+                    camera_sync_off: r.camera_sync_off === 'true',
+                    onedrive_sync_on: r.onedrive_sync_on === 'true',
+                    photos_count: parseInt(r.photos_count) || 0,
+                    total_photos: parseInt(r.total_photos) || 0,
+                    photos_date: r.photos_date || null,
+                    ignore_flag: r.ignore_flag === 'true',
+                    notes: r.notes
+                }]);
+                if (aErr) throw aErr;
+
+                alert('Audited! 🦞');
+                load(r.serial_number);
+                form.elements['notes'].value = '';
+
+            } catch (err) {
+                console.error(err);
+                formError.textContent = `Error: ${err.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
