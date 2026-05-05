@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Mission Control : Asgard</title>
+    <title>🦞 Mission Control : Asgard [v2.0.5]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -39,7 +39,7 @@
             color: var(--primary-red); 
             margin: 0; 
             font-size: 1.8em; 
-            letter-spacing: 5px;
+            letter-spacing: 2px;
             text-shadow: 0 0 10px var(--primary-red);
         }
 
@@ -75,7 +75,6 @@
             padding-bottom: 5px;
         }
 
-        /* Mission Control Layout */
         .site-card { grid-column: span 4; }
         .team-card { grid-column: span 3; }
         .priority-card { grid-column: span 5; }
@@ -114,23 +113,22 @@
         }
 
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-        .live-tag { color: var(--primary-red); animation: blink 1.5s infinite; font-weight: bold; }
+        .live-tag { color: var(--primary-red); animation: blink 1.5s infinite; font-weight: bold; font-size: 0.8em; }
     </style>
 </head>
 <body>
     <div class="header">
         <div>
-            <h1>MISSION CONTROL : ASGARD [v2.0.4]</h1>
+            <h1>MISSION CONTROL : ASGARD [v2.0.5]</h1>
             <div style="font-size: 0.7em; color: var(--text-gold);">[ SYSTEM_INITIALIZED // ORCHESTRATOR_BRUCE_ONLINE ]</div>
         </div>
-        <div class="live-tag">● LIVE_DATA_STREAM</div>
+        <div class="live-tag">● DATA_REFRESH_INTERVAL: 15S</div>
     </div>
 
     <div class="dashboard-grid">
-        <!-- Site Audit Stats -->
         <div class="card site-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h2 id="currentSiteName" style="border:none; margin:0;">🏠 LOADING...</h2>
+                <h2 id="currentSiteName" style="border:none; margin:0;">🏠 INITIALIZING...</h2>
                 <select id="sitePicker" style="background:#000; color:var(--terminal-green); border:1px solid var(--terminal-green); font-family:monospace; font-size:0.8em; padding:2px;">
                     <option value="Benowa ELC">Benowa ELC</option>
                 </select>
@@ -155,7 +153,6 @@
             <div id="siteHighRisks" style="margin-top:15px; font-size:0.75em; color:var(--primary-red); max-height:60px; overflow-y:auto;"></div>
         </div>
 
-        <!-- Top 3 Needs Attention -->
         <div class="card priority-card">
             <h2>⚠️ PRIORITY_REMEDIATION_QUEUE</h2>
             <div id="priorityList" style="font-size: 0.9em;">
@@ -163,37 +160,28 @@
             </div>
         </div>
 
-        <!-- Agent Status -->
         <div class="card team-card">
             <h2>🛡️ SQUAD_STATUS</h2>
             <ul class="agent-list">
                 <li class="agent-item"><span>ODIN</span> <span>[WATCHING]</span></li>
-                <li class="agent-item" style="color:var(--text-gold);"><span>BRUCE</span> <span>[ORCHESTRATING]</span></li>
+                <li class="agent-item" style="color:var(--text-gold);"><span>BRUCE</span> <span>[ACTIVE]</span></li>
                 <li class="agent-item"><span>THOR</span> <span>[STANDBY]</span></li>
                 <li class="agent-item"><span>LADY_SIF</span> <span>[READY]</span></li>
                 <li class="agent-item" style="color:#2196f3;"><span>HEIMDALL</span> <span>[SCANNING]</span></li>
-                <li class="agent-item"><span>LOKI</span> <span>[SHADOWING]</span></li>
             </ul>
         </div>
 
-        <!-- Live Intelligence Feed -->
         <div class="card log-container" id="intelligenceFeed">
-            <div style="color:var(--text-gold); border-bottom:1px solid rgba(0, 230, 118, 0.3); margin-bottom:10px; font-size: 0.8em; position:sticky; top:0; background:#000;">> ACCESSING_ENCRYPTED_LOG_STREAM...</div>
-            <div id="logContent">
-                <div>[01:36:05] Bruce: Initiated Dashboard Project.</div>
-                <div>[01:34:22] Heartbeat: Performed workspace backup to GitHub.</div>
-                <div>[00:54:10] Standard Audit Procedure: Locked as standard protocol.</div>
-                <div>[02:24:15] Mission Control: Applying visual HUD upgrade.</div>
-            </div>
+            <div style="color:var(--text-gold); border-bottom:1px solid rgba(0, 230, 118, 0.3); margin-bottom:10px; font-size: 0.8em; position:sticky; top:0; background:#000;">> ENCRYPTED_LOG_STREAM</div>
+            <div id="logContent"></div>
             <div id="feedEnd"></div>
         </div>
 
-        <!-- Infrastructure Health -->
         <div class="card sync-card">
             <h2>⛓️ PERSISTENCE_LINK</h2>
-            <div class="agent-item"><span>SUPABASE_DB</span> <span style="color:var(--terminal-green);">[CONNECTED]</span></div>
-            <div class="agent-item"><span>GITHUB_REMOTE</span> <span style="color:var(--text-gold);">[SYNCING]</span></div>
-            <div class="agent-item"><span>GRAPH_API_SP</span> <span style="color:var(--terminal-green);">[ACTIVE]</span></div>
+            <div class="agent-item"><span>SUPABASE</span> <span style="color:var(--terminal-green);">[OK]</span></div>
+            <div class="agent-item"><span>GITHUB</span> <span style="color:var(--text-gold);">[PASS]</span></div>
+            <div class="agent-item"><span>SHAREPOINT</span> <span style="color:var(--terminal-green);">[LINK]</span></div>
         </div>
     </div>
 
@@ -205,6 +193,7 @@
         const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function updateDashboard() {
+            console.log("HUD_REFRESH_INITIATED");
             const currentSite = document.getElementById('sitePicker').value;
             document.getElementById('currentSiteName').innerText = `🏠 ${currentSite}`;
 
@@ -222,58 +211,30 @@
                 const active = entries.filter(r => !r.ignore_flag && uniqueSerials.includes(r.serial_number));
                 const missing = entries.filter(r => r.ignore_flag && uniqueSerials.includes(r.serial_number));
                 
-                const activeCount = active.length;
-                const missingCount = missing.length;
-                const total = activeCount + missingCount;
-
-                document.getElementById('activeDevices').innerText = activeCount.toString().padStart(2, '0');
-                document.getElementById('missingAssets').innerText = missingCount.toString().padStart(2, '0');
+                document.getElementById('activeDevices').innerText = active.length.toString().padStart(2, '0');
+                document.getElementById('missingAssets').innerText = missing.length.toString().padStart(2, '0');
                 
-                const progress = total > 0 ? (activeCount / total) * 100 : 0;
-                document.getElementById('auditProgress').value = activeCount;
+                const total = active.length + missing.length;
+                const progress = total > 0 ? (active.length / total) * 100 : 0;
+                document.getElementById('auditProgress').value = active.length;
                 document.getElementById('auditProgress').max = total;
                 document.getElementById('coveragePercent').innerText = `${Math.round(progress)}%`;
 
-                const breaches = entries.filter(r => (r.photos_count || 0) > 100);
-                const riskDiv = document.getElementById('siteHighRisks');
-                riskDiv.innerHTML = breaches.length > 0 ? '<strong>⚠️ BREACH_ALERTS:</strong><br>' + 
-                    breaches.map(b => `• ${b.serial_number}: ${b.photos_count} PHOTOS`).join('<br>') : '';
-
                 const needsAttention = entries
-                    .filter(r => !r.ignore_flag && ((r.photos_count || 0) > 0 || r.onedrive_status === 'Failed' || (r.notes && r.notes.toLowerCase().includes('fail'))))
-                    .sort((a, b) => (b.photos_count || 0) - (a.photos_count || 0))
-                    .slice(0, 3);
+                    .filter(r => !r.ignore_flag && ((r.photos_count || 0) > 100 || r.onedrive_status === 'Failed'))
+                    .sort((a,b) => (b.photos_count || 0) - (a.photos_count || 0))
+                    .slice(0,3);
 
-                const priorityDiv = document.getElementById('priorityList');
-                priorityDiv.innerHTML = needsAttention.length > 0 ? 
-                    needsAttention.map((r, i) => `
-                        <div class="agent-item" style="border-left: 3px solid ${i === 0 ? '#ff1744' : '#ff9100'}; padding-left: 10px; margin-bottom: 5px; background: rgba(51, 51, 51, 0.4);">
-                            <div>
-                                <div style="color:var(--text-gold); font-weight:bold;">${r.devices?.assigned_user_room || 'UNKNOWN'}</div>
-                                <div style="font-size:0.7em;">SN: ${r.serial_number}</div>
-                            </div>
-                            <div style="text-align:right;">
-                                <div style="color:#ff5252; font-size:0.8em;">${(r.photos_count || 0) > 0 ? r.photos_count + ' PHOTOS' : 'SYNC_FAIL'}</div>
-                            </div>
-                        </div>
-                    `).join('') : '<div class="stat-label">NO_IMMEDIATE_REMEDIATION_REQUIRED</div>';
+                document.getElementById('priorityList').innerHTML = needsAttention.map(r => `
+                    <div class="agent-item">
+                        <span>${r.devices?.assigned_user_room || 'ERR'}</span>
+                        <span style="color:var(--primary-red);">${r.photos_count || 'FAIL'}</span>
+                    </div>`).join('');
             }
         }
 
-        // Function to force refresh on site change
-        document.getElementById('sitePicker').addEventListener('change', () => {
-            console.log("Site change detected, refreshing data...");
-            updateDashboard();
-        });
-
-        // Set interval with variable for tracking
-        console.log("Initializing auto-refresh sequence (30s interval)...");
-        const refreshInterval = setInterval(() => {
-            console.log("Executing scheduled auto-refresh...");
-            updateDashboard();
-        }, 30000);
-
-        // Initial call
+        document.getElementById('sitePicker').addEventListener('change', updateDashboard);
+        setInterval(updateDashboard, 15000); // 15 seconds
         updateDashboard();
     </script>
 </body>
