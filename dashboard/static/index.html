@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦞 Asgardian Tactical Dashboard</title>
+    <style>
+        :root {
+            --primary-red: #d32f2f;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-gold: #ffca28;
+            --text-white: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-white);
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary-red);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .header h1 { color: var(--primary-red); margin: 0; font-size: 2.5em; }
+        .header p { color: var(--text-gold); font-style: italic; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border-left: 5px solid var(--primary-red);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: var(--text-gold);
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            background: #3d3d3d;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value { font-size: 1.5em; font-weight: bold; color: var(--primary-red); }
+        .stat-label { font-size: 0.8em; color: #bbb; }
+
+        .agent-list { list-style: none; padding: 0; }
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #444;
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .online { background-color: #4caf50; }
+        .active { background-color: #2196f3; }
+
+        .log-container {
+            grid-column: span 2;
+            background: #000;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            color: #00ff00;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 800px) {
+            .log-container { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ASGARDIAN TACTICAL MAP</h1>
+        <p>"This is the Claw Way" 🦞</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Site Audit Stats -->
+        <div class="card">
+            <h2>🏠 Benowa ELC Compliance</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="activeDevices">33</div>
+                    <div class="stat-label">Active Assets</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="missingAssets">11</div>
+                    <div class="stat-label">Missing/Risk</div>
+                </div>
+            </div>
+            <div style="margin-top:15px; text-align:center;">
+                <progress id="auditProgress" value="33" max="44" style="width:100%; height:20px;"></progress>
+                <div class="stat-label" style="margin-top:5px;">Audit Coverage Index</div>
+            </div>
+        </div>
+
+        <!-- Agent Status -->
+        <div class="card">
+            <h2>🛡️ Asgardian Team Status</h2>
+            <ul class="agent-list">
+                <li class="agent-item">
+                    <span>Bruce (Orchestrator)</span>
+                    <span><span class="status-dot online"></span>Ready</span>
+                </li>
+                <li class="agent-item">
+                    <span>Thor (SOC Manager)</span>
+                    <span><span class="status-dot online"></span>Standby</span>
+                </li>
+                <li class="agent-item">
+                    <span>Heimdall (Hunter)</span>
+                    <span><span class="status-dot active"></span>Scanning</span>
+                </li>
+                <li class="agent-item">
+                    <span>Loki (Triage)</span>
+                    <span><span class="status-dot"></span>Shadowing</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Infrastructure Health -->
+        <div class="card">
+            <h2>⛓️ Persistence & Sync</h2>
+            <div class="agent-item">
+                <span>Supabase Telemetry</span>
+                <span style="color:#4caf50;">Connected</span>
+            </div>
+            <div class="agent-item">
+                <span>GitHub Main Backup</span>
+                <span id="githubStatus" style="color:var(--text-gold);">Sync Pending</span>
+            </div>
+            <div class="agent-item">
+                <span>SharePoint Bridge</span>
+                <span style="color:#4caf50;">Active</span>
+            </div>
+        </div>
+
+        <!-- Live Intelligence Feed -->
+        <div class="card log-container" id="intelligenceFeed">
+            <div style="color:var(--text-gold); border-bottom:1px solid #333; margin-bottom:10px;">> ACCESSING LIVE INTELLIGENCE FEED...</div>
+            <div>[01:36:05] Bruce: Initiated Dashboard Project.</div>
+            <div>[01:34:22] Heartbeat: Performed workspace backup to GitHub.</div>
+            <div>[00:54:10] Standard Audit Procedure: Locked as standard protocol.</div>
+            <div>[00:52:02] SharePoint: report_Benowa_ELC_2026-05-04.docx uploaded.</div>
+            <div id="feedEnd"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function updateDashboard() {
+            // Update Audit Stats
+            const { data: active } = await _supabase.from('audit_entries').select('serial_number').eq('site_name', 'Benowa ELC').eq('ignore_flag', false);
+            const { data: missing } = await _supabase.from('audit_entries').select('serial_number').eq('site_name', 'Benowa ELC').eq('ignore_flag', true);
+            
+            if(active) document.getElementById('activeDevices').innerText = [...new Set(active.map(r => r.serial_number))].length;
+            if(missing) document.getElementById('missingAssets').innerText = [...new Set(missing.map(r => r.serial_number))].length;
+
+            // Update Intelligence Feed from chat history or telemetry
+            // (Placeholder for now, we'll connect this to the chat_logger table next)
+        }
+
+        setInterval(updateDashboard, 30000);
+        updateDashboard();
+    </script>
+</body>
+</html>
