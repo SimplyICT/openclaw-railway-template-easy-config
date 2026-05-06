@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.7]</title>
+    <!-- CACHE_KILLER: 20260506_2211 -->
+    <style>
+        :root {
+            --primary-red: #ff1744;
+            --terminal-green: #00e676;
+            --text-gold: #ffca28;
+            --glass-bg: rgba(20, 20, 25, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #050505;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
+        }
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--primary-red);
+            text-shadow: 0 0 10px var(--primary-red);
+            border-bottom: 2px solid var(--primary-red);
+            padding-bottom: 10px;
+            margin-top:0;
+        }
+        .section-header {
+            margin: 30px 0 15px;
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.03);
+            border-left: 4px solid var(--primary-red);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.85em;
+            color: var(--text-gold);
+            display: flex;
+            justify-content: space-between;
+        }
+        .sentinel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 15px;
+        }
+        .glass-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            transition: 0.3s;
+        }
+        .glass-box:hover {
+            border-color: var(--primary-red);
+            transform: scale(1.02);
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-active { background: var(--terminal-green); box-shadow: 0 0 10px var(--terminal-green); }
+        .status-disconnected { background: #555; }
+        
+        .agent-id { font-family: monospace; font-size: 0.75em; color: var(--text-gold); opacity: 0.7; }
+        .agent-name { font-size: 1.1em; font-weight: bold; margin: 8px 0; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .agent-os { font-size: 0.8em; opacity: 0.6; height: 1.2em; overflow: hidden; }
+        
+        .level-badges { display: flex; gap: 8px; margin: 12px 0; }
+        .badge {
+            font-size: 0.7em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 900;
+            font-family: monospace;
+        }
+        .lvl-high { background: #d32f2f; color: white; box-shadow: 0 0 8px rgba(211, 47, 47, 0.5); }
+        .lvl-mid { background: #f57c00; color: white; }
+
+        .alert-section {
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .alert-tag {
+            font-size: 0.7em;
+            background: rgba(0,0,0,0.3);
+            color: #ccc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            display: block;
+            border-left: 2px solid var(--primary-red);
+            font-family: monospace;
+        }
+        .disconnected-box { opacity: 0.5; filter: grayscale(0.5); }
+    </style>
+</head>
+<body>
+    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.7]</h1>
+    <div id="loading" style="text-align:center; margin-top:50px; font-family:monospace; color:var(--text-gold);">[ INITIALIZING_VAULT_STREAM... ]</div>
+    
+    <div id="activeSection" style="display:none;">
+        <div class="section-header"><span>>> ONLINE_FLEET</span> <span id="activeCount">0</span></div>
+        <div class="sentinel-grid" id="activeGrid"></div>
+    </div>
+
+    <div id="offlineSection" style="display:none;">
+        <div class="section-header"><span>>> OFFLINE_FLEET</span> <span id="offlineCount">0</span></div>
+        <div class="sentinel-grid" id="offlineGrid"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function renderAgent(a) {
+            let badges = '';
+            if (a.alert_levels) {
+                const high = a.alert_levels["12"] || 0;
+                const mid = a.alert_levels["10"] || 0;
+                if(high > 0) badges += `<span class="badge lvl-high">LVL_12-15: ${high}</span>`;
+                if(mid > 0) badges += `<span class="badge lvl-mid">LVL_7-11: ${mid}</span>`;
+            }
+
+            return `
+                <div class="glass-box ${a.status !== 'active' ? 'disconnected-box' : ''}">
+                    <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
+                    <div class="agent-name">
+                        <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
+                        ${a.name.toUpperCase()}
+                    </div>
+                    <div class="agent-os">${a.os}</div>
+                    <div class="level-badges">${badges}</div>
+                    <div class="alert-section">
+                        ${a.status !== 'active' ? '<span class="alert-tag">DISCONNECTED</span>' : (a.top_alerts ? a.top_alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<span class="alert-tag" style="color:var(--terminal-green); border-color:var(--terminal-green);">SECURE</span>')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadSentinel() {
+            try {
+                const { data, error } = await _supabase
+                    .from('agent_logs')
+                    .select('*')
+                    .eq('agent_name', 'Heimdal (Hunter)')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (data && data[0]) {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('activeSection').style.display = 'block';
+                    document.getElementById('offlineSection').style.display = 'block';
+                    
+                    const jsonStr = data[0].task_description.split('|| DATA: ')[1];
+                    const agents = JSON.parse(jsonStr);
+
+                    const activeAgents = agents.filter(a => a.status === 'active');
+                    const offlineAgents = agents.filter(a => a.status !== 'active');
+
+                    document.getElementById('activeCount').innerText = activeAgents.length;
+                    document.getElementById('offlineCount').innerText = offlineAgents.length;
+
+                    document.getElementById('activeGrid').innerHTML = activeAgents.map(renderAgent).join('');
+                    document.getElementById('offlineGrid').innerHTML = offlineAgents.map(renderAgent).join('');
+                }
+            } catch (err) {
+                console.error("Sentinel Error:", err);
+            }
+        }
+
+        loadSentinel();
+        setInterval(loadSentinel, 15000);
+    </script>
+</body>
+</html>
