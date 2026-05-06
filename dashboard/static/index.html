@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Mission Control : Asgard [v2.1.3]</title>
+    <title>🦞 Mission Control : Asgard [v2.1.4]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -119,10 +119,10 @@
 <body>
     <div class="header">
         <div>
-            <h1>MISSION CONTROL : ASGARD [v2.1.3]</h1>
+            <h1>MISSION CONTROL : ASGARD [v2.1.4]</h1>
             <div style="font-size: 0.7em; color: var(--text-gold);">[ SYSTEM_INITIALIZED // ORCHESTRATOR_BRUCE_ONLINE ]</div>
         </div>
-        <div class="live-tag" id="refreshIndicator" style="border: 1px solid var(--primary-red); padding: 2px 5px;">● DATA_SYNC: ACTIVE [v2.1.3]</div>
+        <div class="live-tag" id="refreshIndicator" style="border: 1px solid var(--primary-red); padding: 2px 5px;">● DATA_SYNC: ACTIVE [v2.1.4]</div>
     </div>
 
     <div class="dashboard-grid">
@@ -167,7 +167,7 @@
         <!-- Agent Status -->
         <div class="card team-card">
             <h2>🛡️ SQUAD_STATUS</h2>
-            <ul class="agent-list">
+            <ul class="agent-list" id="squadList">
                 <li class="agent-item"><span>ODIN</span> <span>[WATCHING]</span></li>
                 <li class="agent-item" style="color:var(--text-gold);"><span>BRUCE</span> <span>[ACTIVE]</span></li>
                 <li class="agent-item"><span>THOR</span> <span>[STANDBY]</span></li>
@@ -201,7 +201,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- CACHE_BUST: 2026-05-05_09:30_MAGIC_BUTTON -->
     <script>
         const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
@@ -212,26 +211,14 @@
             const btn = document.getElementById('btnMagicReport');
             const status = document.getElementById('reportStatus');
             const siteName = document.getElementById('sitePicker').value;
-
             btn.disabled = true;
             btn.innerText = "⌛ PROCESSING...";
-            status.innerText = "[ GENERATING_MD > CONVERTING_DOCX > UPLOADING ]";
+            status.innerText = "[ REQUESTING_MAGIC_REPORT ]";
 
             try {
-                const response = await fetch('/api/generate-report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ site_name: siteName })
-                });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    btn.style.background = 'var(--terminal-green)';
-                    btn.innerText = "✅ UPLOAD_COMPLETE";
-                    status.innerText = `[ ${result.message.toUpperCase()} ]`;
-                } else {
-                    throw new Error(result.message);
-                }
+                const { error } = await _supabase.from('report_requests').insert([{ site_name: siteName, target_date: new Date().toISOString().split('T')[0], status: 'PENDING' }]);
+                if (error) throw error;
+                btn.innerText = "✅ REQUEST_SENT";
             } catch (err) {
                 btn.style.background = 'orange';
                 btn.innerText = "❌ FAILED";
@@ -247,106 +234,87 @@
 
         async function updateDashboard() {
             try {
-                console.log("HUD_REFRESH_INITIATED");
                 const currentSite = document.getElementById('sitePicker').value;
                 document.getElementById('currentSiteName').innerText = `🏠 ${currentSite}`;
-
                 const { data: sites } = await _supabase.from('sites').select('site_name');
                 if (sites) {
                     const picker = document.getElementById('sitePicker');
                     const selected = picker.value;
                     picker.innerHTML = sites.map(s => `<option value="${s.site_name}" ${s.site_name === selected ? 'selected' : ''}>${s.site_name}</option>`).join('');
                 }
-
                 const { data: entries } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', currentSite);
                 
                 if(entries) {
                     const active = entries.filter(r => !r.ignore_flag);
                     const missing = entries.filter(r => r.ignore_flag);
-                    
                     document.getElementById('activeDevices').innerText = active.length.toString().padStart(2, '0');
                     document.getElementById('missingAssets').innerText = missing.length.toString().padStart(2, '0');
-                    
                     const total = active.length + missing.length;
                     const progress = total > 0 ? (active.length / total) * 100 : 0;
                     document.getElementById('auditProgress').value = active.length;
                     document.getElementById('auditProgress').max = total;
                     document.getElementById('coveragePercent').innerText = `${Math.round(progress)}%`;
-
-                    // Populate Risky Assets List in Site Card with Room Names
                     const riskDiv = document.getElementById('siteHighRisks');
                     riskDiv.innerHTML = missing.length > 0 ? 
                         '<div style="color:var(--text-gold); font-weight:bold; margin-bottom:5px;">[ MISSING_ASSET_REGISTER ]</div>' + 
                         missing.map(m => `• <span style="color:#fff;">${m.devices?.assigned_user_room || 'UNKNOWN'}</span> (SN: ${m.serial_number})`).join('<br>') : 
                         '<div style="color:var(--terminal-green); opacity:0.6;">[ ALL_ASSETS_ACCOUNTED_FOR ]</div>';
 
-                    // logic for 30-day staleness (86400000 ms * 30)
                     const thirtyDaysAgo = new Date() - (30 * 24 * 60 * 60 * 1000);
-
-                    // Enhanced Priority Remediation with Reasons & Staleness
-                    const needsAttention = entries
-                        .filter(r => {
+                    const needsAttention = entries.filter(r => {
                             if (r.ignore_flag) return false;
-                            
                             const auditDate = new Date(r.audit_date || r.audit_timestamp);
                             r.isStale = auditDate < thirtyDaysAgo;
                             r.hasSyncIssue = r.onedrive_status === 'Failed' || (r.notes && r.notes.toLowerCase().includes('fail'));
-                            
                             return r.isStale || r.hasSyncIssue;
-                        })
-                        .sort((a,b) => new Date(a.audit_date || a.audit_timestamp) - new Date(b.audit_date || b.audit_timestamp))
-                        .slice(0,5);
+                        }).sort((a,b) => new Date(a.audit_date || a.audit_timestamp) - new Date(b.audit_date || b.audit_timestamp)).slice(0,5);
 
                     document.getElementById('priorityList').innerHTML = needsAttention.map(r => {
-                        let reason = "";
-                        if (r.hasSyncIssue) {
-                            // Extract the specific error from notes if sync failed
-                            const note = (r.notes || "").toUpperCase();
-                            if (note.includes("PASSWORD")) reason = "PASSWORD_FAIL";
-                            else if (note.includes("REMEDIATION")) reason = "REMEDIATION_REQ";
-                            else reason = "SYNC_ERROR";
-                        }
-                        else if (r.isStale) reason = "AUDIT_STALE (>30D)";
-
+                        let reason = r.hasSyncIssue ? "SYNC_ERROR" : "AUDIT_STALE";
                         return `<div class="agent-item" style="background:rgba(255, 23, 68, 0.1); padding:5px; margin-bottom:2px;">
-                            <div>
-                                <div style="color:var(--text-gold); font-weight:bold;">${r.devices?.assigned_user_room || 'UNASSIGNED'}</div>
-                                <div style="font-size:0.65em;">SN: ${r.serial_number}</div>
-                            </div>
-                            <span style="color:var(--primary-red); font-weight:bold; font-size:0.8em; text-align:right;">[${reason}]</span>
+                            <div><div style="color:var(--text-gold); font-weight:bold;">${r.devices?.assigned_user_room || 'UNASSIGNED'}</div></div>
+                            <span style="color:var(--primary-red); font-weight:bold; font-size:0.8em;">[${reason}]</span>
                         </div>`;
                     }).join('');
                 }
-                
-                // Visual Pulse
                 const tag = document.querySelector('.live-tag');
                 tag.style.color = '#fff';
                 setTimeout(() => tag.style.color = 'var(--primary-red)', 500);
-
-            } catch (err) {
-                console.error("HUD_SYNC_ERROR", err);
-            }
+            } catch (err) { console.error("HUD_SYNC_ERROR", err); }
         }
 
         async function fetchLogs() {
             try {
-                const { data: logs } = await _supabase.from('chat_history').select('*').order('timestamp', { ascending: false }).limit(10);
+                const { data: logs } = await _supabase.from('agent_logs').select('*').order('created_at', { ascending: false }).limit(15);
                 if (logs) {
                     document.getElementById('logContent').innerHTML = logs.map(l => `
                         <div style="margin-bottom:8px; border-left: 2px solid var(--terminal-green); padding-left:10px;">
-                            <span style="color:var(--text-gold); font-size:0.8em;">[${new Date(l.timestamp).toLocaleTimeString()}]</span><br>
-                            ${l.summary}
+                            <span style="color:var(--text-gold); font-size:0.8em;">[${new Date(l.created_at).toLocaleTimeString()}] ${l.agent_name}</span><br>
+                            ${l.task_description}
                         </div>`).join('');
+
+                    const agents = ['BRUCE', 'THOR', 'LADY_SIF', 'HEIMDALL', 'COULSON', 'LOKI'];
+                    const squadList = document.getElementById('squadList');
+                    let squadHtml = '<li class="agent-item"><span>ODIN</span> <span>[WATCHING]</span></li>';
+                    agents.forEach(agent => {
+                        const lastLog = logs.find(log => log.agent_name && log.agent_name.toUpperCase().includes(agent));
+                        let status = "[STANDBY]";
+                        if (lastLog) {
+                            const ageInMinutes = (new Date() - new Date(lastLog.created_at)) / 60000;
+                            status = ageInMinutes < 15 ? "[ACTIVE]" : "[IDLE]";
+                        }
+                        const color = agent === 'BRUCE' ? 'var(--text-gold)' : (status === '[ACTIVE]' ? 'var(--terminal-green)' : 'inherit');
+                        squadHtml += `<li class="agent-item" style="color:${color};"><span>${agent.replace('_', ' ')}</span> <span>${status}</span></li>`;
+                    });
+                    squadList.innerHTML = squadHtml;
                 }
             } catch (err) { console.error("LOG_ERR", err); }
         }
 
         window.onload = () => {
-            updateDashboard();
-            fetchLogs();
+            updateDashboard(); fetchLogs();
             setInterval(() => { updateDashboard(); fetchLogs(); }, 15000);
         };
-
         document.getElementById('sitePicker').addEventListener('change', updateDashboard);
     </script>
 </body>
