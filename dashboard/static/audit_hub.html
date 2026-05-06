@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Asgard Audit Hub (v5.5)</title>
+    <title>🦞 Asgard Audit Hub (v5.6)</title>
     <style>
         body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
         .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
@@ -25,7 +25,7 @@
     </style>
 </head>
 <body>
-    <h2>🛡️ Asgardian Audit Hub (v5.5)</h2>
+    <h2>🛡️ Asgardian Audit Hub (v5.6)</h2>
     <div class="container">
         <div class="form-panel">
             <div class="site-manager">
@@ -42,6 +42,12 @@
             <form id="auditForm">
                 <h3>New Audit Entry</h3>
                 <div class="grid">
+                    <div class="full-width">
+                        <label>Quick Link: Room List</label>
+                        <select id="roomFilterSelect">
+                            <option value="">-- All Rooms --</option>
+                        </select>
+                    </div>
                     <div class="full-width">
                         <label>Serial Number (Lookup)</label>
                         <div style="display:flex; gap:5px;">
@@ -81,6 +87,7 @@
 
         const form = document.getElementById('auditForm');
         const siteSelect = document.getElementById('siteSelect');
+        const roomFilterSelect = document.getElementById('roomFilterSelect');
         const deviceTypeSelect = document.getElementById('deviceTypeSelect');
         const formError = document.getElementById('formError');
 
@@ -111,28 +118,59 @@
 
         async function refreshSites() {
             const { data } = await _supabase.from('sites').select('site_name').order('site_name');
-            if (data) { siteSelect.innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join(''); loadSessionLog(); }
+            if (data) { 
+                siteSelect.innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join(''); 
+                loadSessionLog(); 
+                refreshRooms();
+            }
         }
         refreshSites();
 
-        siteSelect.addEventListener('change', loadSessionLog);
+        async function refreshRooms() {
+            const site = siteSelect.value;
+            if (!site) return;
+            // Get all devices to find rooms associated with this site
+            const { data } = await _supabase.from('devices').select('assigned_user_room').not('assigned_user_room', 'is', null).order('assigned_user_room');
+            if (data) {
+                const rooms = [...new Set(data.filter(d => d.assigned_user_room && d.assigned_user_room.trim() !== '').map(d => d.assigned_user_room))];
+                roomFilterSelect.innerHTML = '<option value="">-- All Rooms --</option>' + rooms.map(r => `<option value="${r}">${r}</option>`).join('');
+            }
+        }
+
+        siteSelect.addEventListener('change', () => {
+            loadSessionLog();
+            refreshRooms();
+        });
+
+        roomFilterSelect.addEventListener('change', () => {
+            const room = roomFilterSelect.value;
+            if (room) {
+                loadHistoryByRoom(room);
+            } else {
+                const sn = document.getElementById('serial_number').value.trim();
+                renderHistoryTable([]);
+            }
+        });
+
+        async function loadHistoryByRoom(room) {
+            // Join audit_entries with devices on room
+            const { data } = await _supabase.from('audit_entries').select('*, devices!inner(*)').eq('devices.assigned_user_room', room).order('audit_date', { ascending: false });
+            renderHistoryTable(data);
+        }
 
         async function loadSessionLog() {
             const site = siteSelect.value;
             const target = document.getElementById('sessionLogTarget');
-            // Precise Date Handling: Get the local date in YYYY-MM-DD
             const now = new Date();
             const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
             
             if (!site) return;
 
-            console.log("Fetching session log for:", site, "on date:", today);
-
             const { data, error } = await _supabase
                 .from('audit_entries')
                 .select('*, devices(*)')
                 .eq('site_name', site)
-                .ilike('audit_date', today + '%') // Use LIKE to catch full timestamps
+                .ilike('audit_date', today + '%')
                 .order('audit_date', { ascending: false });
             if (data && data.length > 0) {
                 let html = '<table style="background:#e3f2fd; border: 1px solid #1976d2;"><tr><th>Room</th><th>User/Model</th><th>OS</th><th>Photos</th></tr>';
@@ -141,21 +179,29 @@
             } else { target.innerHTML = '<div style="font-size:0.8em; background:#fff3e0; padding:10px; border:1px solid #ff9800; border-radius:4px;">No records entered today for this site.</div>'; }
         }
 
-        async function loadHistory(sn) {
-            const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('serial_number', sn).order('audit_date', { ascending: false });
+        function renderHistoryTable(data) {
             const target = document.getElementById('historyTarget');
             if (data && data.length > 0) {
-                let html = '<table><tr><th>Date</th><th>Room</th><th>OS/Ver</th><th>Cloud</th><th>Notes</th></tr>';
-                data.forEach(row => { html += `<tr><td>${row.audit_date||'N/A'}</td><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>Cam:${row.camera_sync_off?'OFF':'ON'}/OD:${row.onedrive_sync_on?'ON':'OFF'}</td><td>${row.notes || ''}</td></tr>`; });
+                let html = '<table><tr><th>Date</th><th>Room</th><th>SN</th><th>Cloud</th><th>Notes</th></tr>';
+                data.forEach(row => { html += `<tr><td>${row.audit_date.split('T')[0]||'N/A'}</td><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.serial_number}</td><td>Cam:${row.camera_sync_off?'OFF':'ON'}/OD:${row.onedrive_sync_on?'ON':'OFF'}</td><td>${row.notes || ''}</td></tr>`; });
                 target.innerHTML = html + '</table>';
-            } else { target.innerHTML = '<strong>No records found.</strong>'; }
+            } else { target.innerHTML = '<strong>No historical records found for this selection.</strong>'; }
+        }
+
+        async function loadHistory(sn) {
+            const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('serial_number', sn).order('audit_date', { ascending: false });
+            renderHistoryTable(data);
         }
 
         document.getElementById('fetchBtn').addEventListener('click', async () => {
             const sn = document.getElementById('serial_number').value.trim();
             if (!sn) return;
             const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
-            if (device) { form.elements['device_type'].value = device.device_type || ''; form.elements['brand_model'].value = device.brand_model || ''; toggleFields(); }
+            if (device) { 
+                form.elements['device_type'].value = device.device_type || ''; 
+                form.elements['brand_model'].value = device.brand_model || ''; 
+                toggleFields(); 
+            }
             loadHistory(sn);
         });
 
