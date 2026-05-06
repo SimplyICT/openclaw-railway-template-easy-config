@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Wazuh Sentinel : Asgard [v1.3]</title>
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.4]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -41,7 +41,7 @@
         }
         .sentinel-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
         }
         .glass-box {
@@ -74,6 +74,24 @@
         .agent-name { font-size: 1.2em; font-weight: bold; margin: 10px 0; }
         .agent-os { font-size: 0.85em; opacity: 0.7; }
         
+        .level-badges {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-family: monospace;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .lvl-12-15 { background: #b71c1c; color: white; border-color: #ff1744; box-shadow: 0 0 5px #b71c1c; }
+        .lvl-7-11 { background: #e65100; color: white; }
+        .lvl-1-6 { background: #333; color: #ccc; }
+
         .alert-section {
             margin-top: 15px;
             padding-top: 10px;
@@ -94,7 +112,7 @@
     </style>
 </head>
 <body>
-    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.3]</h1>
+    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.4]</h1>
     <div id="loading" style="text-align:center; margin-top:50px; font-family:monospace; color:var(--text-gold);">[ SCANNING_VAULT... ]</div>
     
     <div id="activeSection">
@@ -114,6 +132,19 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function renderAgent(a) {
+            let badges = '';
+            if (a.alert_levels) {
+                // Priority Levels 12-15
+                let highLvl = 0;
+                for(let i=12; i<=15; i++) highLvl += (a.alert_levels[i] || 0);
+                if(highLvl > 0) badges += `<span class="badge lvl-12-15">HIGH: ${highLvl}</span>`;
+
+                // Mid Levels 7-11
+                let midLvl = 0;
+                for(let i=7; i<=11; i++) midLvl += (a.alert_levels[i] || 0);
+                if(midLvl > 0) badges += `<span class="badge lvl-7-11">MID: ${midLvl}</span>`;
+            }
+
             return `
                 <div class="glass-box ${a.status !== 'active' ? 'disconnected-box' : ''}">
                     <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
@@ -122,9 +153,10 @@
                         ${a.name.toUpperCase()}
                     </div>
                     <div class="agent-os">${a.os}</div>
+                    <div class="level-badges">${badges}</div>
                     <div class="alert-section">
                         <div style="font-size: 0.7em; margin-bottom: 5px; color: var(--text-gold);">SECURITY_STATUS</div>
-                        ${a.status !== 'active' ? '<span class="alert-tag">OFFLINE</span>' : (a.alerts && a.alerts.length > 0 ? a.alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<div class="no-alerts">[ HEALTHY ]</div>')}
+                        ${a.status !== 'active' ? '<span class="alert-tag">OFFLINE</span>' : (a.top_alerts && a.top_alerts.length > 0 ? a.top_alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<div class="no-alerts">[ HEALTHY ]</div>')}
                     </div>
                 </div>
             `;
