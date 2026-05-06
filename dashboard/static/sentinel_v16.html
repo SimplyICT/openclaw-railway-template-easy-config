@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.6-CACHE-KILL]</title>
+    <style>
+        :root {
+            --primary-red: #ff1744;
+            --terminal-green: #00e676;
+            --text-gold: #ffca28;
+            --glass-bg: rgba(20, 20, 25, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #050505;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
+        }
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--primary-red);
+            text-shadow: 0 0 10px var(--primary-red);
+            border-bottom: 2px solid var(--primary-red);
+            padding-bottom: 10px;
+        }
+        .section-header {
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--glass-border);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+            color: var(--text-gold);
+            display: flex;
+            justify-content: space-between;
+        }
+        .sentinel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .glass-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        .glass-box:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-red);
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-active { background: var(--terminal-green); box-shadow: 0 0 10px var(--terminal-green); }
+        .status-disconnected { background: var(--primary-red); box-shadow: 0 0 10px var(--primary-red); }
+        
+        .agent-id { font-family: monospace; font-size: 0.8em; color: var(--text-gold); }
+        .agent-name { font-size: 1.2em; font-weight: bold; margin: 10px 0; }
+        .agent-os { font-size: 0.85em; opacity: 0.7; }
+        
+        .level-badges {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-family: monospace;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .lvl-12-15 { background: #b71c1c; color: white; border-color: #ff1744; box-shadow: 0 0 5px #b71c1c; }
+        .lvl-7-11 { background: #e65100; color: white; }
+
+        .alert-section {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid var(--glass-border);
+        }
+        .alert-tag {
+            font-size: 0.75em;
+            background: rgba(255, 23, 68, 0.2);
+            color: #ff8a80;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            display: block;
+            border-left: 3px solid var(--primary-red);
+        }
+        .no-alerts { color: var(--terminal-green); font-size: 0.8em; opacity: 0.6; }
+        .disconnected-box { opacity: 0.6; border-color: rgba(255, 23, 68, 0.2); }
+    </style>
+</head>
+<body>
+    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.6-CACHE-KILL]</h1>
+    <div id="loading" style="text-align:center; margin-top:50px; font-family:monospace; color:var(--text-gold);">[ SCANNING_VAULT... ]</div>
+    
+    <div id="activeSection">
+        <div class="section-header"><span>>> ONLINE_FLEET</span> <span id="activeCount">0</span></div>
+        <div class="sentinel-grid" id="activeGrid"></div>
+    </div>
+
+    <div id="offlineSection">
+        <div class="section-header"><span>>> OFFLINE_FLEET</span> <span id="offlineCount">0</span></div>
+        <div class="sentinel-grid" id="offlineGrid"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function renderAgent(a) {
+            let badges = '';
+            if (a.alert_levels) {
+                let highLvl = 0;
+                for(let i=12; i<=15; i++) highLvl += (a.alert_levels[i] || 0);
+                if(highLvl > 0) badges += `<span class="badge lvl-12-15">HIGH: ${highLvl}</span>`;
+
+                let midLvl = 0;
+                for(let i=7; i<=11; i++) midLvl += (a.alert_levels[i] || 0);
+                if(midLvl > 0) badges += `<span class="badge lvl-7-11">MID: ${midLvl}</span>`;
+            }
+
+            return `
+                <div class="glass-box ${a.status !== 'active' ? 'disconnected-box' : ''}">
+                    <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
+                    <div class="agent-name">
+                        <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
+                        ${a.name.toUpperCase()}
+                    </div>
+                    <div class="agent-os">${a.os}</div>
+                    <div class="level-badges">${badges}</div>
+                    <div class="alert-section">
+                        <div style="font-size: 0.7em; margin-bottom: 5px; color: var(--text-gold);">SECURITY_STATUS</div>
+                        ${a.status !== 'active' ? '<span class="alert-tag">OFFLINE</span>' : (a.top_alerts && a.top_alerts.length > 0 ? a.top_alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<div class="no-alerts">[ HEALTHY ]</div>')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadSentinel() {
+            try {
+                const { data, error } = await _supabase
+                    .from('agent_logs')
+                    .select('*')
+                    .eq('agent_name', 'Heimdal (Hunter)')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const dataRecord = data.find(r => r.task_description && r.task_description.includes('|| DATA: '));
+                    
+                    if (dataRecord) {
+                        document.getElementById('loading').style.display = 'none';
+                        const jsonStr = dataRecord.task_description.split('|| DATA: ')[1];
+                        const agents = JSON.parse(jsonStr);
+
+                        const activeAgents = agents.filter(a => a.status === 'active');
+                        const offlineAgents = agents.filter(a => a.status !== 'active');
+
+                        document.getElementById('activeCount').innerText = activeAgents.length;
+                        document.getElementById('offlineCount').innerText = offlineAgents.length;
+
+                        document.getElementById('activeGrid').innerHTML = activeAgents.map(renderAgent).join('');
+                        document.getElementById('offlineGrid').innerHTML = offlineAgents.map(renderAgent).join('');
+                    }
+                }
+            } catch (err) {
+                console.error("Sentinel Error:", err);
+            }
+        }
+
+        loadSentinel();
+        setInterval(loadSentinel, 15000);
+    </script>
+</body>
+</html>
