@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Wazuh Sentinel : Asgard [v1.4]</title>
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.5]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -90,7 +90,6 @@
         }
         .lvl-12-15 { background: #b71c1c; color: white; border-color: #ff1744; box-shadow: 0 0 5px #b71c1c; }
         .lvl-7-11 { background: #e65100; color: white; }
-        .lvl-1-6 { background: #333; color: #ccc; }
 
         .alert-section {
             margin-top: 15px;
@@ -109,10 +108,12 @@
         }
         .no-alerts { color: var(--terminal-green); font-size: 0.8em; opacity: 0.6; }
         .disconnected-box { opacity: 0.6; border-color: rgba(255, 23, 68, 0.2); }
+
+        .cache-notice { font-size: 0.6em; color: #333; position: fixed; bottom: 5px; right: 5px; }
     </style>
 </head>
 <body>
-    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.4]</h1>
+    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.5]</h1>
     <div id="loading" style="text-align:center; margin-top:50px; font-family:monospace; color:var(--text-gold);">[ SCANNING_VAULT... ]</div>
     
     <div id="activeSection">
@@ -125,6 +126,8 @@
         <div class="sentinel-grid" id="offlineGrid"></div>
     </div>
 
+    <div class="cache-notice">REVISION: 20260506_2205</div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
@@ -134,12 +137,10 @@
         function renderAgent(a) {
             let badges = '';
             if (a.alert_levels) {
-                // Priority Levels 12-15
                 let highLvl = 0;
                 for(let i=12; i<=15; i++) highLvl += (a.alert_levels[i] || 0);
                 if(highLvl > 0) badges += `<span class="badge lvl-12-15">HIGH: ${highLvl}</span>`;
 
-                // Mid Levels 7-11
                 let midLvl = 0;
                 for(let i=7; i<=11; i++) midLvl += (a.alert_levels[i] || 0);
                 if(midLvl > 0) badges += `<span class="badge lvl-7-11">MID: ${midLvl}</span>`;
@@ -169,7 +170,7 @@
                     .select('*')
                     .eq('agent_name', 'Heimdal (Hunter)')
                     .order('created_at', { ascending: false })
-                    .limit(5);
+                    .limit(10);
 
                 if (error) throw error;
 
