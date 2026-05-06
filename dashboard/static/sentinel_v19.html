@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Wazuh Sentinel : Drill-Down [v1.9]</title>
+    <style>
+        :root {
+            --primary-red: #ff1744;
+            --terminal-green: #00e676;
+            --text-gold: #ffca28;
+            --glass-bg: rgba(20, 20, 25, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #050505;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
+        }
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--primary-red);
+            text-shadow: 0 0 10px var(--primary-red);
+            border-bottom: 2px solid var(--primary-red);
+            padding-bottom: 15px;
+            margin-top:0;
+        }
+        .section-header {
+            margin: 30px 0 15px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+            border-left: 5px solid var(--primary-red);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+            color: var(--text-gold);
+            display: flex;
+            justify-content: space-between;
+        }
+        .sentinel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .glass-box {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .status-active { background: var(--terminal-green); box-shadow: 0 0 10px var(--terminal-green); }
+        .status-disconnected { background: #666; }
+        
+        .agent-name { font-size: 1.3em; font-weight: bold; color: #fff; }
+        .agent-os { font-size: 0.8em; color: var(--text-gold); opacity: 0.6; margin-bottom: 15px; font-family: monospace; }
+        
+        .practical-alerts {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 6px;
+        }
+        .alert-stat { text-align: center; cursor: pointer; transition: 0.2s; border-radius: 4px; padding: 5px 0; }
+        .alert-stat:hover { background: rgba(255,255,255,0.1); }
+        .alert-val { display: block; font-size: 1.2em; font-weight: 800; font-family: monospace; }
+        .alert-lbl { display: block; font-size: 0.6em; opacity: 0.7; }
+        
+        .lvl-15 { color: #ff1744; }
+        .lvl-14 { color: #ff5252; }
+        .lvl-13 { color: #ffab40; }
+        .lvl-12 { color: #ffd740; }
+
+        .drill-down-panel {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255, 23, 68, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 23, 68, 0.2);
+            font-size: 0.75em;
+            display: none;
+        }
+        .drill-item {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 8px 0;
+        }
+        .drill-item:last-child { border: none; }
+        .drill-title { color: var(--text-gold); font-weight: bold; display: block; margin-bottom: 3px; }
+        .drill-desc { opacity: 0.8; font-family: monospace; line-height: 1.3; }
+
+        .disconnected-box { opacity: 0.5; filter: saturate(0.2); }
+    </style>
+</head>
+<body>
+    <h1>🛡️ Wazuh Sentinel : Drill-Down Intel [v1.9]</h1>
+    <div id="loading" style="text-align:center; padding:100px; font-family:monospace; color:var(--text-gold);">[ DECRYPTING_DRILL_VECTORS... ]</div>
+    
+    <div id="fleetContainer">
+        <div id="activeSection" style="display:none;">
+            <div class="section-header"><span>>> ONLINE_FLEET</span> <span id="activeCount">0</span></div>
+            <div class="sentinel-grid" id="activeGrid"></div>
+        </div>
+        <div id="offlineSection" style="display:none;">
+            <div class="section-header"><span>>> OFFLINE_FLEET</span> <span id="offlineCount">0</span></div>
+            <div class="sentinel-grid" id="offlineGrid"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const _supabase = supabase.createClient('https://zhvxjuhgfudavxrfsasn.supabase.co', 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb');
+
+        function toggleDrill(id) {
+            const panel = document.getElementById('drill-' + id);
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function renderAgent(a) {
+            const lvls = a.alert_levels || {};
+            const drills = a.detailed_alerts || [];
+            let drillHtml = drills.map(d => `
+                <div class="drill-item">
+                    <span class="drill-title">${d.title}</span>
+                    <div class="drill-desc">${d.reason}</div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="glass-box ${a.status !== 'active' ? 'disconnected-box' : ''}">
+                    <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
+                    <span class="agent-name">${a.name.toUpperCase()}</span>
+                    <div class="agent-os">ID: ${a.id} // ${a.ip}</div>
+                    
+                    <div class="practical-alerts" onclick="toggleDrill('${a.id}')">
+                        <div class="alert-stat"><span class="alert-val lvl-15">${lvls["15"]||0}</span><span class="alert-lbl">LVL_15</span></div>
+                        <div class="alert-stat"><span class="alert-val lvl-14">${lvls["14"]||0}</span><span class="alert-lbl">LVL_14</span></div>
+                        <div class="alert-stat"><span class="alert-val lvl-13">${lvls["13"]||0}</span><span class="alert-lbl">LVL_13</span></div>
+                        <div class="alert-stat"><span class="alert-val lvl-12">${lvls["12"]||0}</span><span class="alert-lbl">LVL_12</span></div>
+                        <div class="alert-stat"><span class="alert-val lvl-gen">${lvls["11"]||0}</span><span class="alert-lbl">LVL_11</span></div>
+                        <div class="alert-stat"><span class="alert-val lvl-gen">${lvls["10"]||0}</span><span class="alert-lbl">LVL_10</span></div>
+                    </div>
+                    
+                    <div id="drill-${a.id}" class="drill-down-panel">
+                        <div style="color:var(--primary-red); font-size:0.8em; margin-bottom:10px; border-bottom:1px solid rgba(255,23,68,0.2);">TOP_SECURITY_FAILURES</div>
+                        ${drillHtml || '<div class="drill-desc">No detailed trace data available.</div>'}
+                    </div>
+
+                    <div style="font-size: 0.65em; font-family: monospace; opacity:0.6; margin-top:10px;">
+                        ${a.status === 'active' ? 'SYSTEM_HEALTH: STABLE' : '[ OFFLINE ]'}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadSentinel() {
+            try {
+                const { data } = await _supabase.from('agent_logs').select('*').eq('agent_name', 'Heimdal (Hunter)').order('created_at', { ascending: false }).limit(1);
+                if (data && data[0]) {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('activeSection').style.display = 'block';
+                    document.getElementById('offlineSection').style.display = 'block';
+                    const agents = JSON.parse(data[0].task_description.split('|| DATA: ')[1]);
+                    const activeAgents = agents.filter(a => a.status === 'active');
+                    const offlineAgents = agents.filter(a => a.status !== 'active');
+                    document.getElementById('activeCount').innerText = activeAgents.length;
+                    document.getElementById('offlineCount').innerText = offlineAgents.length;
+                    document.getElementById('activeGrid').innerHTML = activeAgents.map(renderAgent).join('');
+                    document.getElementById('offlineGrid').innerHTML = offlineAgents.map(renderAgent).join('');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        loadSentinel();
+        setInterval(loadSentinel, 30000);
+    </script>
+</body>
+</html>
