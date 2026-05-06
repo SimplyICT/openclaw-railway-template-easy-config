@@ -21,3 +21,5 @@
 1. Refine Soft Edge CSS further (glassmorphism tweaks).
 2. Stabilize Ollama Node .102 handshake.
 3. Establish custom 'Asgard' categories in Supabase to bypass legacy constraints.
+Updated Bruce.md
+Wed May  6 13:12:42 UTC 2026
