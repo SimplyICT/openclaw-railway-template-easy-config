@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Wazuh Sentinel : Asgard [v1.0]</title>
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.1]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -95,47 +95,48 @@
 
         async function loadSentinel() {
             try {
-                // Fetch latest Wazuh metadata from telemetry table (stored by sync script)
                 const { data, error } = await _supabase
                     .from('agent_logs')
                     .select('*')
                     .eq('agent_name', 'Heimdal (Hunter)')
-                    .order('created_at', { ascending: false })
+                    .order('created_at', { descending: true })
                     .limit(1);
 
-                if (data && data[0] && data[0].metadata) {
+                if (data && data[0]) {
                     document.getElementById('loading').style.display = 'none';
-                    const stats = data[0].metadata;
-                    // Note: In a real scenario, we'd fetch the full agent list from a 'wazuh_agents' table
-                    // For this glass UI, we'll map the agents we know are active.
-                    // Improving this to be fully dynamic requires the sync script to dump the full list to Supabase.
+                    let agents = [];
                     
-                    // Fallback to static mock if full list isn't in metadata yet
-                    const agents = stats.raw_agents || [
-                        { name: 'mydesktop', status: 'active', os: 'Windows 11 Pro', id: '001', ip: '192.168.1.156' },
-                        { name: 'Bruce-Backup', status: 'disconnected', os: 'Ubuntu 22.04', id: '003', ip: '208.87.135.84' },
-                        { name: 'ITFlow', status: 'active', os: 'Ubuntu 24.04', id: '004', ip: '208.87.135.193' },
-                        { name: 'RMM', status: 'active', os: 'Ubuntu 22.04', id: '009', ip: '208.87.135.69' }
-                    ];
+                    if (data[0].metadata && data[0].metadata.raw_agents) {
+                        agents = data[0].metadata.raw_agents;
+                    } else if (data[0].task_description && data[0].task_description.includes('|| DATA: ')) {
+                        const jsonStr = data[0].task_description.split('|| DATA: ')[1];
+                        agents = JSON.parse(jsonStr);
+                    }
 
                     const grid = document.getElementById('sentinelGrid');
-                    grid.innerHTML = agents.map(a => `
-                        <div class="glass-box">
-                            <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
-                            <div class="agent-name">
-                                <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
-                                ${a.name.toUpperCase()}
+                    if (agents.length > 0) {
+                        grid.innerHTML = agents.map(a => `
+                            <div class="glass-box">
+                                <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
+                                <div class="agent-name">
+                                    <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
+                                    ${a.name.toUpperCase()}
+                                </div>
+                                <div class="agent-os">${a.os}</div>
+                                <div class="alert-section">
+                                    <div style="font-size: 0.7em; margin-bottom: 5px; color: var(--text-gold);">LATEST_SECURITY_EVENTS</div>
+                                    ${a.status === 'disconnected' ? '<span class="alert-tag">DISCONNECTION_DETECTED: NODE_OFFLINE</span>' : (a.alerts && a.alerts.length > 0 ? a.alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<div class="no-alerts">[ NO_CRITICAL_ALERTS ]</div>')}
+                                </div>
                             </div>
-                            <div class="agent-os">${a.os}</div>
-                            <div class="alert-section">
-                                <div style="font-size: 0.7em; margin-bottom: 5px; color: var(--text-gold);">LATEST_SECURITY_EVENTS</div>
-                                ${a.status === 'disconnected' ? '<span class="alert-tag">DISCONNECTION_DETECTED: NODE_OFFLINE</span>' : '<div class="no-alerts">[ NO_CRITICAL_ALERTS ]</div>'}
-                            </div>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    } else {
+                        document.getElementById('loading').innerText = '[ NO_DATA_RETURNED ]';
+                        document.getElementById('loading').style.display = 'block';
+                    }
                 }
             } catch (err) {
                 console.error("Sentinel Error:", err);
+                document.getElementById('loading').innerText = '[ ERROR_LOADING_VAULT ]';
             }
         }
 
