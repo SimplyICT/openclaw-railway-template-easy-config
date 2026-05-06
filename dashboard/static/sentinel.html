@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Wazuh Sentinel : Asgard [v1.2]</title>
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.3]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -28,11 +28,21 @@
             border-bottom: 2px solid var(--primary-red);
             padding-bottom: 10px;
         }
+        .section-header {
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--glass-border);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9em;
+            color: var(--text-gold);
+            display: flex;
+            justify-content: space-between;
+        }
         .sentinel-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
-            margin-top: 30px;
         }
         .glass-box {
             background: var(--glass-bg);
@@ -80,12 +90,22 @@
             border-left: 3px solid var(--primary-red);
         }
         .no-alerts { color: var(--terminal-green); font-size: 0.8em; opacity: 0.6; }
+        .disconnected-box { opacity: 0.6; border-color: rgba(255, 23, 68, 0.2); }
     </style>
 </head>
 <body>
-    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.2]</h1>
+    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.3]</h1>
     <div id="loading" style="text-align:center; margin-top:50px; font-family:monospace; color:var(--text-gold);">[ SCANNING_VAULT... ]</div>
-    <div class="sentinel-grid" id="sentinelGrid"></div>
+    
+    <div id="activeSection">
+        <div class="section-header"><span>>> ONLINE_FLEET</span> <span id="activeCount">0</span></div>
+        <div class="sentinel-grid" id="activeGrid"></div>
+    </div>
+
+    <div id="offlineSection">
+        <div class="section-header"><span>>> OFFLINE_FLEET</span> <span id="offlineCount">0</span></div>
+        <div class="sentinel-grid" id="offlineGrid"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -93,9 +113,25 @@
         const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        function renderAgent(a) {
+            return `
+                <div class="glass-box ${a.status !== 'active' ? 'disconnected-box' : ''}">
+                    <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
+                    <div class="agent-name">
+                        <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
+                        ${a.name.toUpperCase()}
+                    </div>
+                    <div class="agent-os">${a.os}</div>
+                    <div class="alert-section">
+                        <div style="font-size: 0.7em; margin-bottom: 5px; color: var(--text-gold);">SECURITY_STATUS</div>
+                        ${a.status !== 'active' ? '<span class="alert-tag">OFFLINE</span>' : (a.alerts && a.alerts.length > 0 ? a.alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<div class="no-alerts">[ HEALTHY ]</div>')}
+                    </div>
+                </div>
+            `;
+        }
+
         async function loadSentinel() {
             try {
-                console.log("SENTINEL_REFRESH_START");
                 const { data, error } = await _supabase
                     .from('agent_logs')
                     .select('*')
@@ -106,7 +142,6 @@
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    // Find the first record that actually has the || DATA: string
                     const dataRecord = data.find(r => r.task_description && r.task_description.includes('|| DATA: '));
                     
                     if (dataRecord) {
@@ -114,30 +149,18 @@
                         const jsonStr = dataRecord.task_description.split('|| DATA: ')[1];
                         const agents = JSON.parse(jsonStr);
 
-                        const grid = document.getElementById('sentinelGrid');
-                        grid.innerHTML = agents.map(a => `
-                            <div class="glass-box">
-                                <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
-                                <div class="agent-name">
-                                    <span class="status-dot ${a.status === 'active' ? 'status-active' : 'status-disconnected'}"></span>
-                                    ${a.name.toUpperCase()}
-                                </div>
-                                <div class="agent-os">${a.os}</div>
-                                <div class="alert-section">
-                                    <div style="font-size: 0.7em; margin-bottom: 5px; color: var(--text-gold);">LATEST_SECURITY_EVENTS</div>
-                                    ${a.status === 'disconnected' ? '<span class="alert-tag">DISCONNECTION_DETECTED: NODE_OFFLINE</span>' : (a.alerts && a.alerts.length > 0 ? a.alerts.map(al => `<span class="alert-tag">${al}</span>`).join('') : '<div class="no-alerts">[ NO_CRITICAL_ALERTS ]</div>')}
-                                </div>
-                            </div>
-                        `).join('');
-                    } else {
-                        document.getElementById('loading').innerText = '[ SYNC_IN_PROGRESS_NO_DATA_MATCH ]';
+                        const activeAgents = agents.filter(a => a.status === 'active');
+                        const offlineAgents = agents.filter(a => a.status !== 'active');
+
+                        document.getElementById('activeCount').innerText = activeAgents.length;
+                        document.getElementById('offlineCount').innerText = offlineAgents.length;
+
+                        document.getElementById('activeGrid').innerHTML = activeAgents.map(renderAgent).join('');
+                        document.getElementById('offlineGrid').innerHTML = offlineAgents.map(renderAgent).join('');
                     }
-                } else {
-                    document.getElementById('loading').innerText = '[ NO_SERVER_LOGS_FOUND_FOR_HEIMDAL ]';
                 }
             } catch (err) {
                 console.error("Sentinel Error:", err);
-                document.getElementById('loading').innerText = '[ ERROR: ' + err.message + ' ]';
             }
         }
 
