@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦞 Asgard Bridge : Orchestrator [v3.1.7]</title>
+    <style>
+        :root {
+            --primary-red: #ff1744;
+            --terminal-green: #00e676;
+            --text-gold: #ffca28;
+            --dark-bg: #050505;
+            --panel-bg: rgba(20, 20, 25, 0.9);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --header-h: 60px;
+            --sidebar-w: 280px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--dark-bg);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        header {
+            height: var(--header-h);
+            background: rgba(10, 10, 12, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 23, 68, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            justify-content: space-between;
+        }
+
+        .logo { font-size: 1.2em; font-weight: 800; letter-spacing: 2px; color: var(--primary-red); }
+        .nav-container { display: flex; gap: 10px; margin-left: 20px; }
+        
+        .nav-item {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            padding: 6px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+        .nav-item.active { background: var(--primary-red); color: #fff; border-color: var(--primary-red); box-shadow: 0 0 10px rgba(255, 23, 68, 0.4); }
+        .nav-item:hover { color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+
+        aside {
+            position: fixed;
+            top: var(--header-h);
+            left: 0;
+            width: var(--sidebar-w);
+            bottom: 0;
+            background: rgba(15, 15, 18, 0.95);
+            border-right: 1px solid rgba(255, 23, 68, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        main {
+            margin-left: var(--sidebar-w);
+            margin-top: var(--header-h);
+            height: calc(100vh - var(--header-h));
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+        }
+
+        .agent-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .agent-mini-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+        .agent-name { display: block; font-size: 0.7em; font-weight: bold; margin-top: 5px; opacity: 0.8; }
+        .agent-status { display: block; font-size: 0.6em; color: var(--terminal-green); font-weight: 800; }
+
+        h2 { font-size: 0.75em; text-transform: uppercase; letter-spacing: 2px; color: var(--text-gold); margin-bottom: 10px; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🦞 ASGARD [v3.1.7]</div>
+        <div class="nav-container">
+            <button class="nav-item active" id="btn-hud" onclick="loadView('hud')">HUD</button>
+            <button class="nav-item" id="btn-sentinel" onclick="loadView('sentinel')">SENTINEL</button>
+            <button class="nav-item" id="btn-tasks" onclick="loadView('tasks')">TASKS</button>
+            <button class="nav-item" id="btn-audit" onclick="loadView('audit')">AUDIT</button>
+            <button class="nav-item" id="btn-reports" onclick="loadView('reports')">REPORTS</button>
+        </div>
+        <div style="font-family: monospace; font-size: 0.7em; color: var(--terminal-green);">SYSTEM_STABLE // 192.168.1.101</div>
+    </header>
+
+    <aside>
+        <section>
+            <h2>🛡️ Agent Squad</h2>
+            <div class="agent-gallery">
+                <div class="agent-mini-card"><div style="font-size:1.4em">🦞</div><span class="agent-name">Bruce</span><span class="agent-status">ONLINE</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.4em">⚡</div><span class="agent-name">Thor</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.4em">🕵️♂️</div><span class="agent-name">Loki</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.4em">👁️</div><span class="agent-name">Heimdall</span><span class="agent-status">SCAN</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.4em">🗡️</div><span class="agent-name">Sif</span><span class="agent-status">READY</span></div>
+                <div class="agent-mini-card"><div style="font-size:1.4em">💼</div><span class="agent-name">Coulson</span><span class="agent-status">ACTIVE</span></div>
+            </div>
+            <h2 style="margin-top:25px;">📊 Integrity</h2>
+            <div style="height: 6px; width: 100%; background: #111; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="width: 82%; height: 100%; background: linear-gradient(90deg, var(--primary-red), var(--terminal-green));"></div>
+            </div>
+        </section>
+    </aside>
+
+    <main>
+        <iframe id="viewFrame" src="https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/index.html"></iframe>
+    </main>
+
+    <script>
+        const urlMap = {
+            hud: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/index.html',
+            sentinel: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/sentinel.html',
+            tasks: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/tasks.html',
+            audit: 'https://raw.githack.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit_hub_v57.html'
+        };
+
+        function loadView(key) {
+            console.log("Loading view:", key);
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Add active class to clicked button
+            const btn = document.getElementById('btn-' + key);
+            if (btn) btn.classList.add('active');
+
+            if (key === 'reports') {
+                window.open('https://cccex1.sharepoint.com/sites/bhelc-admin/Shared Documents/Forms/AllItems.aspx?id=/sites/bhelc-admin/Shared Documents/Audit reports', '_blank');
+                return;
+            }
+
+            const frame = document.getElementById('viewFrame');
+            const baseUrl = urlMap[key];
+            if (baseUrl) {
+                const cacheBust = baseUrl + '?v=' + new Date().getTime();
+                frame.src = cacheBust;
+            }
+        }
+    </script>
+</body>
+</html>
