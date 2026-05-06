@@ -5,7 +5,6 @@ from supabase import create_client
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Wazuh/Supabase Config
 WAZUH_URL = "https://securesocentral.com.au:55000"
 USER = "wazuh-wui"
 PASSWORD = "cdcxsOTW165Tqa2N9.0FW4L*Y6*0VK2T"
@@ -29,7 +28,6 @@ def sync():
     agents = get_data(token, "agents")
     alerts = get_data(token, "alerts?limit=20&sort=-timestamp")
     
-    # Enrich agents with their specific alerts
     enriched_agents = []
     for a in agents:
         agent_alerts = [al['rule']['description'] for al in alerts if al.get('agent', {}).get('id') == a['id']]
@@ -42,15 +40,17 @@ def sync():
             "alerts": agent_alerts[:3]
         })
 
-    status_msg = f"SENTINEL SYNC: {len([a for a in agents if a['status'] == 'active'])}/{len(agents)} Agents Online."
+    status_msg = f"SENTINEL SYNC: {len([a for a in agents if a['status'] == 'active'])}/{len(agents)} Agents Online. Fleet Metadata attached to log."
+    
+    # Since metadata column might be missing, we'll store the JSON in the status string for now
+    # or just use task_description for the main summary and wait for schema fix.
     
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     supabase.table("agent_logs").insert({
         "agent_name": "Heimdal (Hunter)",
-        "task_description": status_msg,
+        "task_description": f"{status_msg} || DATA: {json.dumps(enriched_agents[:5])}",
         "model_used": "Sentinel Sync v1.0",
-        "status": "HEALTHY",
-        "metadata": {"raw_agents": enriched_agents}
+        "status": "HEALTHY"
     }).execute()
     print(status_msg)
 
