@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Wazuh Sentinel : Asgard [v1.1]</title>
+    <title>🛡️ Wazuh Sentinel : Asgard [v1.2]</title>
     <style>
         :root {
             --primary-red: #ff1744;
@@ -83,7 +83,7 @@
     </style>
 </head>
 <body>
-    <h1>🛡️ Wazuh Sentinel : Fleet Status</h1>
+    <h1>🛡️ Wazuh Sentinel : Fleet Status [v1.2]</h1>
     <div id="loading" style="text-align:center; margin-top:50px; font-family:monospace; color:var(--text-gold);">[ SCANNING_VAULT... ]</div>
     <div class="sentinel-grid" id="sentinelGrid"></div>
 
@@ -95,26 +95,26 @@
 
         async function loadSentinel() {
             try {
+                console.log("SENTINEL_REFRESH_START");
                 const { data, error } = await _supabase
                     .from('agent_logs')
                     .select('*')
                     .eq('agent_name', 'Heimdal (Hunter)')
-                    .order('created_at', { descending: true })
-                    .limit(1);
+                    .order('created_at', { ascending: false })
+                    .limit(5);
 
-                if (data && data[0]) {
-                    document.getElementById('loading').style.display = 'none';
-                    let agents = [];
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    // Find the first record that actually has the || DATA: string
+                    const dataRecord = data.find(r => r.task_description && r.task_description.includes('|| DATA: '));
                     
-                    if (data[0].metadata && data[0].metadata.raw_agents) {
-                        agents = data[0].metadata.raw_agents;
-                    } else if (data[0].task_description && data[0].task_description.includes('|| DATA: ')) {
-                        const jsonStr = data[0].task_description.split('|| DATA: ')[1];
-                        agents = JSON.parse(jsonStr);
-                    }
+                    if (dataRecord) {
+                        document.getElementById('loading').style.display = 'none';
+                        const jsonStr = dataRecord.task_description.split('|| DATA: ')[1];
+                        const agents = JSON.parse(jsonStr);
 
-                    const grid = document.getElementById('sentinelGrid');
-                    if (agents.length > 0) {
+                        const grid = document.getElementById('sentinelGrid');
                         grid.innerHTML = agents.map(a => `
                             <div class="glass-box">
                                 <div class="agent-id">ID: ${a.id} // ${a.ip}</div>
@@ -130,18 +130,19 @@
                             </div>
                         `).join('');
                     } else {
-                        document.getElementById('loading').innerText = '[ NO_DATA_RETURNED ]';
-                        document.getElementById('loading').style.display = 'block';
+                        document.getElementById('loading').innerText = '[ SYNC_IN_PROGRESS_NO_DATA_MATCH ]';
                     }
+                } else {
+                    document.getElementById('loading').innerText = '[ NO_SERVER_LOGS_FOUND_FOR_HEIMDAL ]';
                 }
             } catch (err) {
                 console.error("Sentinel Error:", err);
-                document.getElementById('loading').innerText = '[ ERROR_LOADING_VAULT ]';
+                document.getElementById('loading').innerText = '[ ERROR: ' + err.message + ' ]';
             }
         }
 
         loadSentinel();
-        setInterval(loadSentinel, 30000);
+        setInterval(loadSentinel, 15000);
     </script>
 </body>
 </html>
