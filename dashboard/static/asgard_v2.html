@@ -154,11 +154,32 @@
         const _supabase = supabase.createClient('https://zhvxjuhgfudavxrfsasn.supabase.co', 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb');
         
         function switchView(viewId, el) {
-            document.querySelectorAll('.view-content').forEach(v => v.classList.remove('view-active'));
-            document.querySelectorAll('.tab').forEach(t => v.classList.remove('active-tab'));
-            document.getElementById('view-' + viewId).classList.add('view-active');
+            // Hide all content
+            document.querySelectorAll('.view-content').forEach(v => v.style.display = 'none');
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active-tab'));
+            
+            // Show target content
+            const target = document.getElementById('view-' + viewId);
+            if (target) {
+                target.style.display = 'block';
+            }
+            // Active tab state
             el.classList.add('active-tab');
         }
+
+        // Add placeholders for the other views so they aren't empty
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="view-managed-av" class="view-content" style="display:none; padding:20px;">
+                <h2>🛡️ Managed AV Overview</h2>
+                <p>Telemetry stream from Wazuh & Defender XDR...</p>
+                <div class="kpi-card" style="width:300px;">Status: All Engines Green</div>
+            </div>
+            <div id="view-recon" class="view-content" style="display:none; padding:20px;">
+                <h2>👁️ Recon & Identity</h2>
+                <p>Monitoring M365 Impossible Travel and Credential Leaks...</p>
+            </div>
+        `);
 
         async function loadAsgardV2() {
             const { data: logs, error } = await _supabase.from('agent_logs').select('*').order('created_at', { ascending: false });
