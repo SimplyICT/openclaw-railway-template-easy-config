@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>👑 Asgard Realm Manager</title>
+    <style>
+        body { background: #050505; color: #eee; font-family: sans-serif; padding: 40px; }
+        .form-box { background: rgba(20,20,25,0.9); border: 1px solid #ffca28; padding: 20px; border-radius: 8px; width: 400px; }
+        input { width: 100%; margin-bottom: 10px; background: #111; border: 1px solid #333; color: #fff; padding: 8px; }
+        button { background: #ffca28; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🛡️ Realm Onboarding Manager</h1>
+    <div class="form-box">
+        <label>Client Name</label><input type="text" id="name" placeholder="Simply ICT">
+        <label>M365 Tenant ID</label><input type="text" id="tid">
+        <label>Application ID</label><input type="text" id="cid">
+        <label>Client Secret</label><input type="password" id="secret">
+        <button onclick="alert('Ready for Supabase Link')">Seal the Realm</button>
+    </div>
+</body>
+</html>

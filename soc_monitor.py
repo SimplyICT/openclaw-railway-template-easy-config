@@ -66,8 +66,8 @@ def monitor_alerts():
                     
                     if rule_id == '40101' or "eicar" in description.lower():
                         print(f"🚨 MATCH: {description}")
-                        log_to_supabase("Lady Sif", f"AUTO-DETECT: {description}", "RESPONDING")
-                        log_to_supabase("Thor", f"AUTO-DETECT: Malware Signature Probe", "RESPONDING")
+                        log_to_supabase("Lady Sif", f"AUTO-DETECT: {description}", "PENDING_REVIEW")
+                        log_to_supabase("Thor", f"AUTO-DETECT: Malware Signature Probe", "PENDING_REVIEW")
             except Exception as e:
                 print(f"Monitoring error: {e}")
         else:

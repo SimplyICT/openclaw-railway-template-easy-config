@@ -62,7 +62,7 @@ def log_alert_to_squad(client_name, incident):
         data = {
             "agent_name": agent,
             "task_description": full_task_description,
-            "status": "RESPONDING" if severity.lower() in ['high', 'medium'] else "ACTIVE",
+            "status": "PENDING_REVIEW" if severity.lower() in ['high', 'medium'] else "ACTIVE",
             "model_used": "Asgard-XDR-Watcher-v1"
         }
         sb.table("agent_logs").insert(data).execute()
