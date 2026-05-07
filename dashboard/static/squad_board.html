@@ -155,7 +155,9 @@
                 const agentStates = {};
 
                 logs.forEach(log => {
-                    const baseName = squad.find(s => log.agent_name.includes(s));
+                    // Log normalization: lowercase check to prevent string mismatch
+                    const normalizedAgentName = log.agent_name.toLowerCase();
+                    const baseName = squad.find(s => normalizedAgentName.includes(s.toLowerCase()));
                     if (baseName && !agentStates[baseName]) {
                         agentStates[baseName] = log;
                     }
