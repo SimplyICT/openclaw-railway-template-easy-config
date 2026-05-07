@@ -5,7 +5,6 @@ from supabase import create_client
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Wazuh/Supabase Config
 WAZUH_URL = "https://securesocentral.com.au:55000"
 USER = "wazuh-wui"
 PASSWORD = "cdcxsOTW165Tqa2N9.0FW4L*Y6*0VK2T"
@@ -20,9 +19,7 @@ def get_token():
 def get_data(token, endpoint):
     headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(f"{WAZUH_URL}/{endpoint}", headers=headers, verify=False)
-    if response.status_code == 200:
-        return response.json().get('data', {}).get('affected_items', [])
-    return []
+    return response.json().get('data', {}).get('affected_items', []) if response.status_code == 200 else []
 
 def sync():
     token = get_token()
@@ -32,7 +29,6 @@ def sync():
     
     enriched_agents = []
     for a in agents:
-        # Get SCA policy summary
         sca_summary = get_data(token, f"sca/{a['id']}")
         fail_count = 0
         policy_id = ""
@@ -41,13 +37,12 @@ def sync():
         if sca_summary:
             fail_count = sca_summary[0].get('fail', 0)
             policy_id = sca_summary[0].get('policy_id', '')
-            
-            # If there are failures, reach into the checks for the top 5 practical failures
-            if fail_count > 0:
-                checks = get_data(token, f"sca/{a['id']}/checks/{policy_id}?status=fail&limit=5")
-                detailed_fails = [{"title": c.get('title'), "reason": c.get('description')} for c in checks]
+            # Correct endpoint for v4.14: sca/{agent_id}/checks/{policy_id}
+            checks = get_data(token, f"sca/{a['id']}/checks/{policy_id}?limit=20")
+            # Manually filter for 'failed' locally since URL param 'status' isn't supported in this spec
+            failed_checks = [c for c in checks if c.get('result') == 'failed']
+            detailed_fails = [{"title": c.get('title'), "reason": (c.get('description', '')[:100] + '...')} for c in failed_checks[:5]]
 
-        # Use the density distribution for levels 10-15
         level_map = {
             "15": int(fail_count * 0.02),
             "14": int(fail_count * 0.05),
@@ -64,20 +59,17 @@ def sync():
             "ip": a['ip'],
             "os": f"{a.get('os', {}).get('name', 'Unknown')} {a.get('os', {}).get('version', '')}",
             "alert_levels": level_map,
-            "detailed_alerts": detailed_fails,
-            "total_fails": fail_count
+            "detailed_alerts": detailed_fails
         })
 
-    status_msg = f"SENTINEL SYNC: Drill-down data enabled for {len(enriched_agents)} agents."
-    
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     supabase.table("agent_logs").insert({
         "agent_name": "Heimdal (Hunter)",
-        "task_description": f"{status_msg} || DATA: {json.dumps(enriched_agents)}",
+        "task_description": f"SENTINEL SYNC: Drill-down trace enabled. || DATA: {json.dumps(enriched_agents)}",
         "model_used": "Sentinel Sync v1.6",
         "status": "HEALTHY"
     }).execute()
-    print(status_msg)
+    print("Sync Complete")
 
 if __name__ == "__main__":
     sync()
