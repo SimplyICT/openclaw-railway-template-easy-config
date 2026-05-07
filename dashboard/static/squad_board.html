@@ -174,11 +174,11 @@
 
                     const targetCol = getColumn(member, log.status, log.task_description);
                     const icon = agentIcons[member] || '🛡️';
-                    const isResponding = targetCol === 'list-incident';
+                    const isResponding = targetCol === 'list-incident' || log.status.toUpperCase().includes('RESPONDING');
 
                     const card = `
-                        <div class="agent-card">
-                            <span class="status-badge ${isResponding ? 'status-responding' : (log.status === 'ACTIVE' ? 'status-active' : '')}">${log.status}</span>
+                        <div class="agent-card" style="${isResponding ? 'border-color: var(--primary-red); box-shadow: 0 0 15px rgba(255, 23, 68, 0.4);' : ''}">
+                            <span class="status-badge ${isResponding ? 'status-responding' : (log.status.toUpperCase() === 'ACTIVE' ? 'status-active' : '')}">${log.status}</span>
                             <div class="agent-icon">${icon}</div>
                             <span class="agent-title">${log.agent_name}</span>
                             <span class="task-msg">${log.task_description.split('||')[0]}</span>
