@@ -1,0 +1,109 @@
+{
+  "name": "Asgardian SOC: Wazuh Alert → IR Response",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wazuh-alerts",
+        "options": {}
+      },
+      "name": "Wazuh Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "asgard-soc-alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"Wazuh Webhook\"].json[\"rule\"][\"level\"]}}",
+              "operation": "largerEqual",
+              "value2": 12
+            }
+          ]
+        }
+      },
+      "name": "Filter High Priority",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "model": "openrouter/anthropic/claude-3.5-sonnet",
+        "options": {
+          "temperature": 0.5
+        },
+        "prompt": "Analyze this Wazuh security alert and determine the best Asgardian agent for response (Thor, Lady Sif, Heimdall, Coulson, or Loki). Provide a brief mitigation strategy.\n\nAlert: {{$node[\"Wazuh Webhook\"].json[\"rule\"][\"description\"]}}\nAgent: {{$node[\"Wazuh Webhook\"].json[\"agent\"][\"name\"]}}"
+      },
+      "name": "Bruce AI Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [690, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zhvxjuhgfudavxrfsasn.supabase.co/rest/v1/agent_logs",
+        "authentication": "headerAuth",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "agent_name",
+              "value": "Lady Sif (SOC IR)"
+            },
+            {
+              "name": "task_description",
+              "value": "AUTO-INCIDENT: Creating ITFlow Ticket for {{$node[\"Wazuh Webhook\"].json[\"rule\"][\"description\"]}} on {{$node[\"Wazuh Webhook\"].json[\"agent\"][\"name\"]}}"
+            },
+            {
+              "name": "status",
+              "value": "RESPONDING"
+            }
+          ]
+        }
+      },
+      "name": "Log to Asgard Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [910, 200]
+    }
+  ],
+  "connections": {
+    "Wazuh Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Priority": {
+      "main": [
+        [
+          {
+            "node": "Bruce AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bruce AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Log to Asgard Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
