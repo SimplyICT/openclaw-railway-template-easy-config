@@ -2819,3 +2819,51 @@ Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max re
 ❌ Failed to obtain Wazuh Token.
 Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
 ❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
+Auth Error: HTTPSConnectionPool(host='securesocentral.com.au', port=443): Max retries exceeded with url: /wazuh-api/security/user/authenticate (Caused by NewConnectionError("HTTPSConnection(host='securesocentral.com.au', port=443): Failed to establish a new connection: [Errno 111] Connection refused"))
+❌ Failed to obtain Wazuh Token.
