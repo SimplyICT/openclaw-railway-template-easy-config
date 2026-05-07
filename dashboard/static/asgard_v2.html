@@ -3,100 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Asgard High Command [v2.0]</title>
+    <title>🛡️ Asgard High Command [v2.0-STABLE]</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-red: #ff1744;
             --terminal-green: #00e676;
             --text-gold: #ffca28;
-            --huntress-blue: #007bff;
             --panel-bg: rgba(20, 20, 25, 0.95);
             --glass-border: rgba(255, 255, 255, 0.1);
             --nav-height: 60px;
         }
-        body {
+        body, html {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #050505;
-            color: #eee;
-            margin: 0;
-            padding: 0;
+            background: #050505; color: #eee; margin: 0; padding: 0;
+            height: 100vh; overflow: hidden;
             background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
         }
 
-        /* Top Navigation Bar - Huntress Style */
         .top-nav {
-            height: var(--nav-height);
-            background: #111;
-            border-bottom: 2px solid var(--primary-red);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            gap: 30px;
-            z-index: 1001;
-            box-shadow: 0 2px 20px rgba(255, 23, 68, 0.3);
+            height: var(--nav-height); background: #111; border-bottom: 2px solid var(--primary-red);
+            display: flex; align-items: center; padding: 0 20px; gap:30px; z-index: 1001;
         }
         .nav-logo { font-weight: bold; color: var(--primary-red); font-size: 1.2rem; letter-spacing: 2px; }
+        
         .nav-tabs { display: flex; gap: 5px; height: 100%; align-items: center; }
         .tab {
-            padding: 0 15px;
-            height: 70%;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.2s;
-            border-bottom: 3px solid transparent;
+            padding: 0 15px; height: 70%; display: flex; align-items: center; cursor: pointer;
+            border-radius: 4px; font-size: 0.85rem; text-transform: uppercase;
+            transition: 0.2s; border-bottom: 3px solid transparent;
         }
         .tab:hover { background: rgba(255,255,255,0.05); color: var(--text-gold); }
         .active-tab { border-bottom: 3px solid var(--primary-red); background: rgba(255,23,68,0.1); font-weight: bold; }
-        
-        .tenant-selector { margin-left: auto; background: #000; border: 1px solid var(--glass-border); color: var(--text-gold); padding: 5px 15px; border-radius: 4px; font-size: 0.8rem; }
 
-        /* Main Workspace Area */
-        #asgard-workspace { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        #asgard-workspace { height: calc(100vh - var(--nav-height)); padding: 20px; overflow-y: auto; box-sizing: border-box; }
+        .view-content { display: none; width: 100%; height: 100%; }
+        .view-active { display: block !important; }
 
-        /* KPI Ribbon */
+        /* Dashboard Styles */
         .kpi-row { display: flex; gap: 20px; margin-bottom: 30px; }
-        .kpi-card {
-            flex: 1;
-            background: var(--panel-bg);
-            border: 1px solid var(--glass-border);
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        .kpi-val { font-size: 2rem; font-weight: bold; color: var(--primary-red); display: block; }
+        .kpi-card { flex: 1; background: var(--panel-bg); border: 1px solid var(--glass-border); padding: 15px; border-radius: 8px; text-align: center; }
+        .kpi-val { font-size: 1.8rem; font-weight: bold; color: var(--primary-red); display: block; }
         .kpi-label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.6; }
 
-        /* Kanban Layout */
-        .kanban-container { display: flex; gap: 20px; min-height: 60vh; }
+        .kanban-container { display: flex; gap: 20px; min-height: 50vh; }
         .kanban-column { flex: 1; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; }
-        .column-header { padding: 12px; background: rgba(255, 23, 68, 0.1); border-bottom: 1px solid var(--primary-red); text-align: center; font-size: 0.75rem; font-weight: bold; color: var(--text-gold); text-transform: uppercase; }
-        .task-list { padding: 10px; flex-grow: 1; }
+        .column-header { padding: 10px; background: rgba(255, 23, 68, 0.1); border-bottom: 1px solid var(--primary-red); text-align: center; font-size: 0.75rem; color: var(--text-gold); }
+        .task-list { padding: 10px; overflow-y: auto; }
         
-        .agent-card { background: #16161a; border: 1px solid var(--glass-border); padding: 12px; margin-bottom: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s; position: relative; }
-        .agent-card:hover { border-color: var(--text-gold); transform: scale(1.02); }
-        .agent-card.responding { border-color: var(--primary-red); animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,23,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(255,23,68,0); } 100% { box-shadow: 0 0 0 0 rgba(255,23,68,0); } }
+        .agent-card { background: #16161a; border: 1px solid var(--glass-border); padding: 12px; margin-bottom: 10px; border-radius: 6px; position: relative; }
+        .agent-card.responding { border-color: var(--primary-red); box-shadow: 0 0 10px var(--primary-red); }
 
-        /* View Containers */
-        .view-content { display: none; }
-        .view-active { display: block; }
-
-        /* Placeholder for Footholds Table */
-        .data-table { width: 100%; border-collapse: collapse; background: var(--panel-bg); }
-        .data-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--primary-red); color: var(--text-gold); font-size: 0.8rem; }
-        .data-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; font-family: monospace; }
-        .severity-high { color: var(--primary-red); font-weight: bold; }
+        /* Table Style */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--primary-red); color: var(--text-gold); }
+        .data-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -104,48 +65,51 @@
     <nav class="top-nav">
         <div class="nav-logo">ASGARD//SOC</div>
         <div class="nav-tabs">
-            <div class="tab active-tab" onclick="switchView('incidents', this)">🛡️ Dash/Incidents</div>
+            <div class="tab active-tab" onclick="switchView('incidents', this)">🛡️ Incidents</div>
             <div class="tab" onclick="switchView('footholds', this)">👣 Footholds</div>
             <div class="tab" onclick="switchView('managed-av', this)">🛡️ Managed AV</div>
-            <div class="tab" onclick="switchView('recon', this)">👁️ Recon/Identity</div>
-            <div class="tab" onclick="window.open('/__openclaw__/canvas/realm_manager.html')">⚙️ Tenants</div>
+            <div class="tab" onclick="switchView('recon', this)">👁️ Recon</div>
+            <div class="tab" onclick="switchView('tenants', this)">⚙️ Tenants</div>
         </div>
-        <select class="tenant-selector">
-            <option>GLOBAL_VIEW</option>
-            <option>Simply ICT</option>
-            <option>Client_02 (Locked)</option>
-        </select>
     </nav>
 
     <div id="asgard-workspace">
         
-        <!-- DASHBOARD / INCIDENTS VIEW -->
         <div id="view-incidents" class="view-content view-active">
             <div class="kpi-row">
                 <div class="kpi-card"><span class="kpi-val" id="kpi-incidents">0</span><span class="kpi-label">Active Incidents</span></div>
-                <div class="kpi-card"><span class="kpi-val" id="kpi-footholds">0</span><span class="kpi-label">Detected Footholds</span></div>
-                <div class="kpi-card"><span class="kpi-val" id="kpi-fleet">29</span><span class="kpi-label">Managed Agents</span></div>
-                <div class="kpi-card"><span class="kpi-val" style="color:var(--terminal-green)">LIVE</span><span class="kpi-label">SOC Connection</span></div>
+                <div class="kpi-card"><span class="kpi-val">29</span><span class="kpi-label">Agents</span></div>
+                <div class="kpi-card"><span class="kpi-val" style="color:var(--terminal-green)">ONLINE</span><span class="kpi-label">SOC Sync</span></div>
             </div>
 
             <div class="kanban-container">
                 <div class="kanban-column"><div class="column-header">Monitoring</div><div id="list-monitoring" class="task-list"></div></div>
-                <div class="kanban-column"><div class="column-header">Incident Response</div><div id="list-responding" class="task-list"></div></div>
-                <div class="kanban-column"><div class="column-header">Review / Finalized</div><div id="list-review" class="task-list"></div></div>
+                <div class="kanban-column"><div class="column-header">Responding</div><div id="list-responding" class="task-list"></div></div>
+                <div class="kanban-column"><div class="column-header">Audit/Review</div><div id="list-review" class="task-list"></div></div>
             </div>
         </div>
 
-        <!-- FOOTHOLDS VIEW -->
         <div id="view-footholds" class="view-content">
             <h2>Persistent Foothold Inventory</h2>
             <table class="data-table">
-                <thead>
-                    <tr><th>Detection Date</th><th>Tenant</th><th>Mechanism</th><th>File Path / Hash</th><th>Severity</th><th>Status</th></tr>
-                </thead>
-                <tbody id="foothold-rows">
-                    <!-- Data injected by Erik -->
-                </tbody>
+                <thead><tr><th>Detection</th><th>Tenant</th><th>Mechanism</th><th>Severity</th></tr></thead>
+                <tbody><tr><td colspan="4" style="text-align:center">Scanning for persistence artifacts...</td></tr></tbody>
             </table>
+        </div>
+
+        <div id="view-managed-av" class="view-content">
+            <h2>🛡️ Managed AV Overview</h2>
+            <p>Real-time stream from Wazuh and Defender XDR.</p>
+        </div>
+
+        <div id="view-recon" class="view-content">
+            <h2>👁️ Recon & Identity</h2>
+            <p>M365 Identity Monitoring enabled.</p>
+        </div>
+
+        <div id="view-tenants" class="view-content">
+             <h2>Realm Management</h2>
+             <iframe src="realm_manager.html" style="width:100%; height:80%; border:1px solid var(--primary-red); border-radius:8px;"></iframe>
         </div>
 
     </div>
@@ -154,60 +118,60 @@
         const _supabase = supabase.createClient('https://zhvxjuhgfudavxrfsasn.supabase.co', 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb');
         
         function switchView(viewId, el) {
-            // Hide all content
-            document.querySelectorAll('.view-content').forEach(v => v.style.display = 'none');
-            // Deactivate all tabs
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active-tab'));
+            console.log('Switching to:', viewId);
+            // Hide all
+            const views = document.getElementsByClassName('view-content');
+            for (let i = 0; i < views.length; i++) {
+                views[i].classList.remove('view-active');
+            }
+            // Deactivate tabs
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active-tab');
+            }
             
-            // Show target content
+            // Show selected
             const target = document.getElementById('view-' + viewId);
             if (target) {
-                target.style.display = 'block';
+                target.classList.add('view-active');
+                el.classList.add('active-tab');
             }
-            // Active tab state
-            el.classList.add('active-tab');
         }
 
-        // Add placeholders for the other views so they aren't empty
-        document.body.insertAdjacentHTML('beforeend', `
-            <div id="view-managed-av" class="view-content" style="display:none; padding:20px;">
-                <h2>🛡️ Managed AV Overview</h2>
-                <p>Telemetry stream from Wazuh & Defender XDR...</p>
-                <div class="kpi-card" style="width:300px;">Status: All Engines Green</div>
-            </div>
-            <div id="view-recon" class="view-content" style="display:none; padding:20px;">
-                <h2>👁️ Recon & Identity</h2>
-                <p>Monitoring M365 Impossible Travel and Credential Leaks...</p>
-            </div>
-        `);
-
-        async function loadAsgardV2() {
+        async function updateDashboard() {
             const { data: logs, error } = await _supabase.from('agent_logs').select('*').order('created_at', { ascending: false });
             if (error) return;
 
             const squad = ['Bruce', 'Thor', 'Loki', 'Heimdall', 'Lady Sif', 'Coulson', 'Erik', 'Odin'];
             const icons = {'Bruce': '🦞', 'Thor': '⚡', 'Loki': '🕵️‍♂️', 'Heimdall': '👁️', 'Lady Sif': '🗡️', 'Coulson': '💼', 'Erik': '🏗️', 'Odin': '👑'};
             
-            // Stats
-            const incidentCount = logs.filter(l => l.status === 'RESPONDING').length;
-            document.getElementById('kpi-incidents').innerText = incidentCount;
+            document.getElementById('list-monitoring').innerHTML = '';
+            document.getElementById('list-responding').innerHTML = '';
+            document.getElementById('list-review').innerHTML = '';
 
-            // Clear lists
-            ['list-monitoring', 'list-responding', 'list-review'].forEach(id => document.getElementById(id).innerHTML = '');
+            let redAlerts = 0;
 
             squad.forEach(name => {
                 const log = logs.find(l => l.agent_name.toLowerCase().includes(name.toLowerCase())) || {status: 'ACTIVE', task_description: 'Standing the watch.'};
-                const colId = log.status === 'RESPONDING' ? 'list-responding' : (log.status.includes('REVIEW') ? 'list-review' : 'list-monitoring');
                 
                 const card = document.createElement('div');
-                card.className = `agent-card ${log.status === 'RESPONDING' ? 'responding' : ''}`;
-                card.innerHTML = `<strong>${icons[name]} ${name}</strong><br><small style="font-size:0.6rem; opacity:0.7;">${log.task_description.split('||')[0]}</small>`;
+                card.className = 'agent-card';
+                if(log.status === 'RESPONDING') {
+                    card.classList.add('responding');
+                    redAlerts++;
+                }
+
+                card.innerHTML = `<strong>${icons[name]} ${name}</strong><br><small style="opacity:0.6">${log.task_description.split('||')[0]}</small>`;
+                
+                const colId = log.status === 'RESPONDING' ? 'list-responding' : (log.status.includes('REVIEW') ? 'list-review' : 'list-monitoring');
                 document.getElementById(colId).appendChild(card);
             });
+
+            document.getElementById('kpi-incidents').innerText = redAlerts;
         }
 
-        loadAsgardV2();
-        setInterval(loadAsgardV2, 10000);
+        updateDashboard();
+        setInterval(updateDashboard, 10000);
     </script>
 </body>
 </html>
