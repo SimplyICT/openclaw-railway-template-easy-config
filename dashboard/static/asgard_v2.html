@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard High Command [v2.0]</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-red: #ff1744;
+            --terminal-green: #00e676;
+            --text-gold: #ffca28;
+            --huntress-blue: #007bff;
+            --panel-bg: rgba(20, 20, 25, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --nav-height: 60px;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #050505;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Navigation Bar - Huntress Style */
+        .top-nav {
+            height: var(--nav-height);
+            background: #111;
+            border-bottom: 2px solid var(--primary-red);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 30px;
+            z-index: 1001;
+            box-shadow: 0 2px 20px rgba(255, 23, 68, 0.3);
+        }
+        .nav-logo { font-weight: bold; color: var(--primary-red); font-size: 1.2rem; letter-spacing: 2px; }
+        .nav-tabs { display: flex; gap: 5px; height: 100%; align-items: center; }
+        .tab {
+            padding: 0 15px;
+            height: 70%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab:hover { background: rgba(255,255,255,0.05); color: var(--text-gold); }
+        .active-tab { border-bottom: 3px solid var(--primary-red); background: rgba(255,23,68,0.1); font-weight: bold; }
+        
+        .tenant-selector { margin-left: auto; background: #000; border: 1px solid var(--glass-border); color: var(--text-gold); padding: 5px 15px; border-radius: 4px; font-size: 0.8rem; }
+
+        /* Main Workspace Area */
+        #asgard-workspace { flex-grow: 1; padding: 20px; overflow-y: auto; }
+
+        /* KPI Ribbon */
+        .kpi-row { display: flex; gap: 20px; margin-bottom: 30px; }
+        .kpi-card {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .kpi-val { font-size: 2rem; font-weight: bold; color: var(--primary-red); display: block; }
+        .kpi-label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.6; }
+
+        /* Kanban Layout */
+        .kanban-container { display: flex; gap: 20px; min-height: 60vh; }
+        .kanban-column { flex: 1; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; }
+        .column-header { padding: 12px; background: rgba(255, 23, 68, 0.1); border-bottom: 1px solid var(--primary-red); text-align: center; font-size: 0.75rem; font-weight: bold; color: var(--text-gold); text-transform: uppercase; }
+        .task-list { padding: 10px; flex-grow: 1; }
+        
+        .agent-card { background: #16161a; border: 1px solid var(--glass-border); padding: 12px; margin-bottom: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s; position: relative; }
+        .agent-card:hover { border-color: var(--text-gold); transform: scale(1.02); }
+        .agent-card.responding { border-color: var(--primary-red); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,23,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(255,23,68,0); } 100% { box-shadow: 0 0 0 0 rgba(255,23,68,0); } }
+
+        /* View Containers */
+        .view-content { display: none; }
+        .view-active { display: block; }
+
+        /* Placeholder for Footholds Table */
+        .data-table { width: 100%; border-collapse: collapse; background: var(--panel-bg); }
+        .data-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--primary-red); color: var(--text-gold); font-size: 0.8rem; }
+        .data-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; font-family: monospace; }
+        .severity-high { color: var(--primary-red); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div class="nav-logo">ASGARD//SOC</div>
+        <div class="nav-tabs">
+            <div class="tab active-tab" onclick="switchView('incidents', this)">🛡️ Dash/Incidents</div>
+            <div class="tab" onclick="switchView('footholds', this)">👣 Footholds</div>
+            <div class="tab" onclick="switchView('managed-av', this)">🛡️ Managed AV</div>
+            <div class="tab" onclick="switchView('recon', this)">👁️ Recon/Identity</div>
+            <div class="tab" onclick="window.open('/__openclaw__/canvas/realm_manager.html')">⚙️ Tenants</div>
+        </div>
+        <select class="tenant-selector">
+            <option>GLOBAL_VIEW</option>
+            <option>Simply ICT</option>
+            <option>Client_02 (Locked)</option>
+        </select>
+    </nav>
+
+    <div id="asgard-workspace">
+        
+        <!-- DASHBOARD / INCIDENTS VIEW -->
+        <div id="view-incidents" class="view-content view-active">
+            <div class="kpi-row">
+                <div class="kpi-card"><span class="kpi-val" id="kpi-incidents">0</span><span class="kpi-label">Active Incidents</span></div>
+                <div class="kpi-card"><span class="kpi-val" id="kpi-footholds">0</span><span class="kpi-label">Detected Footholds</span></div>
+                <div class="kpi-card"><span class="kpi-val" id="kpi-fleet">29</span><span class="kpi-label">Managed Agents</span></div>
+                <div class="kpi-card"><span class="kpi-val" style="color:var(--terminal-green)">LIVE</span><span class="kpi-label">SOC Connection</span></div>
+            </div>
+
+            <div class="kanban-container">
+                <div class="kanban-column"><div class="column-header">Monitoring</div><div id="list-monitoring" class="task-list"></div></div>
+                <div class="kanban-column"><div class="column-header">Incident Response</div><div id="list-responding" class="task-list"></div></div>
+                <div class="kanban-column"><div class="column-header">Review / Finalized</div><div id="list-review" class="task-list"></div></div>
+            </div>
+        </div>
+
+        <!-- FOOTHOLDS VIEW -->
+        <div id="view-footholds" class="view-content">
+            <h2>Persistent Foothold Inventory</h2>
+            <table class="data-table">
+                <thead>
+                    <tr><th>Detection Date</th><th>Tenant</th><th>Mechanism</th><th>File Path / Hash</th><th>Severity</th><th>Status</th></tr>
+                </thead>
+                <tbody id="foothold-rows">
+                    <!-- Data injected by Erik -->
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const _supabase = supabase.createClient('https://zhvxjuhgfudavxrfsasn.supabase.co', 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb');
+        
+        function switchView(viewId, el) {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.remove('view-active'));
+            document.querySelectorAll('.tab').forEach(t => v.classList.remove('active-tab'));
+            document.getElementById('view-' + viewId).classList.add('view-active');
+            el.classList.add('active-tab');
+        }
+
+        async function loadAsgardV2() {
+            const { data: logs, error } = await _supabase.from('agent_logs').select('*').order('created_at', { ascending: false });
+            if (error) return;
+
+            const squad = ['Bruce', 'Thor', 'Loki', 'Heimdall', 'Lady Sif', 'Coulson', 'Erik', 'Odin'];
+            const icons = {'Bruce': '🦞', 'Thor': '⚡', 'Loki': '🕵️‍♂️', 'Heimdall': '👁️', 'Lady Sif': '🗡️', 'Coulson': '💼', 'Erik': '🏗️', 'Odin': '👑'};
+            
+            // Stats
+            const incidentCount = logs.filter(l => l.status === 'RESPONDING').length;
+            document.getElementById('kpi-incidents').innerText = incidentCount;
+
+            // Clear lists
+            ['list-monitoring', 'list-responding', 'list-review'].forEach(id => document.getElementById(id).innerHTML = '');
+
+            squad.forEach(name => {
+                const log = logs.find(l => l.agent_name.toLowerCase().includes(name.toLowerCase())) || {status: 'ACTIVE', task_description: 'Standing the watch.'};
+                const colId = log.status === 'RESPONDING' ? 'list-responding' : (log.status.includes('REVIEW') ? 'list-review' : 'list-monitoring');
+                
+                const card = document.createElement('div');
+                card.className = `agent-card ${log.status === 'RESPONDING' ? 'responding' : ''}`;
+                card.innerHTML = `<strong>${icons[name]} ${name}</strong><br><small style="font-size:0.6rem; opacity:0.7;">${log.task_description.split('||')[0]}</small>`;
+                document.getElementById(colId).appendChild(card);
+            });
+        }
+
+        loadAsgardV2();
+        setInterval(loadAsgardV2, 10000);
+    </script>
+</body>
+</html>
