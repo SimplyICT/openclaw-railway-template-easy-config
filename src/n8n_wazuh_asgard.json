@@ -1,5 +1,5 @@
 {
-  "name": "Asgardian SOC: Wazuh Alert → IR Response [v2.2]",
+  "name": "Asgardian SOC: Wazuh Alert → IR Response [v2.3]",
   "nodes": [
     {
       "parameters": {
@@ -16,11 +16,11 @@
     {
       "parameters": {
         "conditions": {
-          "number": [
+          "string": [
             {
-              "value1": "={{ $json.rule?.level || $body.rule?.level || $node[\"Wazuh Webhook\"].json.body?.rule?.level || 0 }}",
-              "operation": "largerEqual",
-              "value2": 12
+              "value1": "={{ JSON.stringify($json) }}",
+              "operation": "contains",
+              "value2": "15"
             }
           ]
         }
@@ -37,7 +37,7 @@
         "authentication": "headerAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"anthropic/claude-3.5-sonnet\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are Bruce, the Asgardian SOC Orchestrator.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze: {{ $json.rule?.description || $body.rule?.description || 'Unknown Security Alert' }}\"\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"model\": \"anthropic/claude-3.5-sonnet\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are Bruce, the Asgardian SOC Orchestrator.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this raw alert data: {{ JSON.stringify($json) }}\"\n    }\n  ]\n}",
         "options": {}
       },
       "name": "Bruce AI Analysis",
