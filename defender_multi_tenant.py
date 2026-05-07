@@ -8,12 +8,11 @@ from supabase import create_client
 # This will eventually move to a secure database table, but for now, we define the structure.
 TENANTS = [
     {
-        "client_name": "Client_Alpha",
-        "tenant_id": "TENANT_ID_HERE",
-        "client_id": "CLIENT_ID_HERE",
-        "client_secret": "CLIENT_SECRET_HERE"
+        "client_name": "Simply ICT",
+        "tenant_id": "8e67ba0d-d398-4330-84f3-dec8ee07eb7b",
+        "client_id": "6d30cf3f-15a5-4ebd-8d16-8bf63504878f",
+        "client_secret": "REDACTED"
     },
-    # Add other 9 clients here
 ]
 
 SUPABASE_URL = "https://zhvxjuhgfudavxrfsasn.supabase.co"
