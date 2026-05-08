@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v10.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
+        #debugInfo { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.75em; border-radius: 4px; margin-bottom: 15px; }
+        .selected-banner { background: #e8f5e9; padding: 10px; border-left: 5px solid #2e7d32; margin-bottom: 15px; font-weight: bold; color: #1b5e20; }
+        .mode-toggle { display: flex; background: #eee; border-radius: 4px; padding: 4px; margin-bottom: 15px; }
+        .mode-toggle button { flex: 1; margin: 0; background: transparent; color: #666; font-size: 0.8em; }
+        .mode-toggle button.active { background: #d32f2f; color: white; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v10.0)</h2>
+    <div id="debugInfo">System: Pipe Active</div>
+    <div class="container">
+        <div class="form-panel">
+            <div class="site-manager">
+                <h3>Site Selection</h3>
+                <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
+            </div>
+            
+            <div class="mode-toggle">
+                <button id="modeRecall" class="active" onclick="setMode('recall')">🔍 Recall Existing</button>
+                <button id="modeNew" onclick="setMode('new')">➕ Add New Device</button>
+            </div>
+
+            <div id="recallArea">
+                <label>Identify Device by Name</label>
+                <select id="deviceNameLookup"><option value="">-- Select --</option></select>
+            </div>
+
+            <div id="newEntryArea" style="display:none;">
+                <label>New Device Friendly Name</label>
+                <input type="text" id="newNameInput" placeholder="e.g. Reception iPad 2">
+            </div>
+
+            <div id="activeDeviceBanner" class="selected-banner" style="display:none;">
+                Mode: <span id="displayMode">Recall</span> | Device: <span id="displayDeviceName">None</span>
+            </div>
+
+            <form id="auditForm">
+                <div class="grid">
+                    <div class="full-width"><label>Serial Number</label><input type="text" id="serial_number" name="serial_number" required></div>
+                    
+                    <div>
+                        <label>Device Type</label>
+                        <div id="typeContainer">
+                            <input type="text" name="device_type" id="deviceTypeInput" readonly style="background:#eee;">
+                        </div>
+                    </div>
+                    
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    
+                    <div class="full-width audit-header">Action</div>
+                    <div class="full-width">
+                        <select name="action_type">
+                            <option value="Annual Audit">Annual Audit</option>
+                            <option value="New Connection">New Connection</option>
+                            <option value="Repair">Repair</option>
+                        </select>
+                    </div>
+
+                    <div class="full-width audit-header">Compliance</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Notes</label><textarea name="notes" rows="3"></textarea></div>
+                </div>
+                <button type="submit" style="width:100%; padding:15px; font-size:1.2em;">Commit to Database</button>
+            </form>
+        </div>
+        <div class="history-panel">
+            <div id="historyTarget">Select or create a device.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const form = document.getElementById('auditForm');
+        let currentMode = 'recall';
+
+        const deviceTypes = ["Laptop", "Desktop", "Tablet", "Phone", "Camera", "Server", "Printer"];
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeRecall').classList.toggle('active', mode === 'recall');
+            document.getElementById('modeNew').classList.toggle('active', mode === 'new');
+            document.getElementById('recallArea').style.display = mode === 'recall' ? 'block' : 'none';
+            document.getElementById('newEntryArea').style.display = mode === 'new' ? 'block' : 'none';
+            document.getElementById('displayMode').innerText = mode === 'recall' ? 'Recall' : 'New Add';
+            
+            const typeContainer = document.getElementById('typeContainer');
+            if (mode === 'new') {
+                typeContainer.innerHTML = '<select name="device_type" id="deviceTypeSelect">' + deviceTypes.map(t => `<option value="${t}">${t}</option>`).join('') + '</select>';
+                document.getElementById('serial_number').readOnly = false;
+                document.getElementById('serial_number').style.background = "white";
+                document.getElementById('serial_number').value = "";
+                document.getElementById('activeDeviceBanner').style.display = 'block';
+                document.getElementById('displayDeviceName').innerText = "Pending Registration...";
+            } else {
+                typeContainer.innerHTML = '<input type="text" name="device_type" id="deviceTypeInput" readonly style="background:#eee;">';
+                document.getElementById('serial_number').readOnly = true;
+                document.getElementById('serial_number').style.background = "#eee";
+                refreshDeviceNames();
+            }
+        }
+
+        async function refreshDeviceNames() {
+            const { data } = await _supabase.from('site_audit_devices').select('name, serial, type').order('name');
+            if (data) {
+                const lookup = document.getElementById('deviceNameLookup');
+                lookup.innerHTML = '<option value="">-- Select --</option>' + 
+                    data.map(d => `<option value="${d.serial}" data-name="${d.name}" data-type="${d.type}">${d.name}</option>`).join('');
+            }
+        }
+
+        document.getElementById('deviceNameLookup').addEventListener('change', async (e) => {
+            const opt = e.target.options[e.target.selectedIndex];
+            if (!e.target.value) return;
+            const sn = e.target.value;
+            const name = opt.getAttribute('data-name');
+            const type = opt.getAttribute('data-type');
+            
+            document.getElementById('serial_number').value = sn;
+            document.getElementById('deviceTypeInput').value = type;
+            document.getElementById('displayDeviceName').innerText = name;
+            document.getElementById('activeDeviceBanner').style.display = 'block';
+            
+            const { data: hist } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_date', {ascending:false});
+            if(hist) document.getElementById('historyTarget').innerHTML = hist.length + " previous entries found.";
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const raw = Object.fromEntries(new FormData(form).entries());
+            const site = document.getElementById('siteSelect').value;
+            
+            try {
+                if (currentMode === 'new') {
+                    const newName = document.getElementById('newNameInput').value;
+                    if (!newName) throw new Error("Please enter a Friendly Name for the new device.");
+                    // Add to inventory
+                    await _supabase.from('devices').upsert({ serial_number: raw.serial_number, device_type: raw.device_type, brand_model: raw.brand_model });
+                    // Add to the audit recall list for this site
+                    await _supabase.from('site_audit_devices').insert([{ site_name: site, name: newName, serial: raw.serial_number, type: raw.device_type }]);
+                } else {
+                    await _supabase.from('devices').upsert({ serial_number: raw.serial_number, device_type: raw.device_type, brand_model: raw.brand_model });
+                }
+                
+                await _supabase.from('audit_entries').insert([{ ...raw, site_name: site }]);
+                alert("Database Updated! 🦞");
+                if (currentMode === 'new') setMode('recall');
+                else refreshDeviceNames();
+            } catch (err) { alert(err.message); }
+        });
+
+        refreshDeviceNames();
+    </script>
+</body>
+</html>
