@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v6.1</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
+        .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+        #debugInfo { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.75em; border-radius: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v6.1)</h2>
+    <div id="debugInfo">System: Initializing...</div>
+    <div class="container">
+        <div class="form-panel">
+            <div class="site-manager">
+                <h3>Site Selection & Magic Report</h3>
+                <label>Active Audit Site</label>
+                <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
+                <button onclick="refreshDeviceNames()" style="background:#444; font-size:0.8em;">🔄 Force Reload Device List</button>
+            </div>
+            <form id="auditForm">
+                <h3>New Audit Entry</h3>
+                <div class="grid">
+                    <div class="full-width">
+                        <label>Recall Device by Name</label>
+                        <select id="deviceNameLookup">
+                            <option value="">-- Waiting for data... --</option>
+                        </select>
+                        <label style="margin-top:10px;">Serial Number (Verified)</label>
+                        <input type="text" id="serial_number" name="serial_number" required>
+                    </div>
+                    <div><label>Device Type</label><select name="device_type"><option value="Laptop">Laptop</option><option value="Desktop">Desktop</option><option value="Tablet">Tablet</option><option value="Phone">Phone</option></select></div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    <div class="full-width audit-header">Audit Data</div>
+                    <div><label>Security Check</label><input type="text" name="security_check"></div>
+                    <div><label>Updates Status</label><input type="text" name="update_status"></div>
+                    <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="2"></textarea></div>
+                </div>
+                <button type="submit" style="width:100%;">Commit Audit Record</button>
+            </form>
+        </div>
+        <div class="history-panel">
+            <div id="historyTarget">Select device to view data.</div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const debug = document.getElementById('debugInfo');
+
+        async function refreshDeviceNames() {
+            debug.innerText = "Fetch Started: Accessing site_audit_devices...";
+            try {
+                const { data, error } = await _supabase.from('site_audit_devices').select('name, serial').order('name');
+                if (error) {
+                    debug.innerText = "Supabase Error: " + error.message;
+                    debug.style.color = "red";
+                    return;
+                }
+                if (data && data.length > 0) {
+                    debug.innerText = "Success: Fetched " + data.length + " devices.";
+                    debug.style.color = "#0f0";
+                    const lookup = document.getElementById('deviceNameLookup');
+                    lookup.innerHTML = '<option value="">-- Select Name --</option>' + 
+                        data.map(d => `<option value="${d.serial}">${d.name}</option>`).join('');
+                } else {
+                    debug.innerText = "Success: Connected, but table returned 0 ROWS.";
+                    debug.style.color = "orange";
+                }
+            } catch (err) {
+                debug.innerText = "Crash: " + err.message;
+                debug.style.color = "red";
+            }
+        }
+
+        document.getElementById('deviceNameLookup').addEventListener('change', async (e) => {
+            const sn = e.target.value;
+            if (!sn) return;
+            document.getElementById('serial_number').value = sn;
+            const { data } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (data) {
+                form.elements['brand_model'].value = data.brand_model || '';
+                form.elements['device_type'].value = data.device_type || '';
+            }
+        });
+
+        refreshDeviceNames();
+    </script>
+</body>
+</html>
