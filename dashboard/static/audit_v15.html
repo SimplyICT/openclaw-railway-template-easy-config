@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v15.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        .status-bar { background: #333; color: #0f0; padding: 8px; font-family: monospace; font-size: 0.75em; border-radius: 4px; margin-bottom: 10px; }
+        .search-area { background: #e3f2fd; padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #1976d2; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v15.0)</h2>
+    <div id="statLog" class="status-bar">System: Operational</div>
+    
+    <div class="container">
+        <div class="form-panel">
+            <div class="site-manager">
+                <label>Target Site</label>
+                <select id="siteSelect"><option value="Benowa Hills ELC">Benowa Hills ELC</option><option value="Benowa ELC">Benowa ELC</option></select>
+            </div>
+
+            <div class="search-area">
+                <label>Lookup Device by Serial Number</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="snLookup" placeholder="Scan or Type SN...">
+                    <button onclick="lookupDevice()" style="background:#1976d2; margin-top:0;">🔍 FIND</button>
+                </div>
+            </div>
+
+            <form id="auditForm">
+                <div class="grid">
+                    <div class="full-width"><label>Serial Number (Identity)</label><input type="text" id="serial_num" name="serial_number" required readonly style="background:#eee;"></div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model" id="brandField"></div>
+                    <div><label>Assigned Room</label><input type="text" name="assigned_user_room" id="roomField"></div>
+                    
+                    <div class="full-width" style="border-top:1px solid #eee; margin-top:10px; padding-top:10px;">
+                        <label>Audit Compliance</label>
+                        <textarea name="notes" rows="3" placeholder="Findings..."></textarea>
+                    </div>
+
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Security Check</label><input type="text" name="security_check" value="PASS"></div>
+                    <div><label>Update Status</label><input type="text" name="update_status" value="OK"></div>
+                </div>
+                <button type="submit" style="width:100%; margin-top:20px; background:#1b5e20; font-size:1.1em;">SAVE AUDIT RECORD</button>
+            </form>
+        </div>
+
+        <div class="history-panel">
+            <h3>Site Activity Records</h3>
+            <div id="historyTarget">History will appear here.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function lookupDevice() {
+            const sn = document.getElementById('snLookup').value.trim();
+            if (!sn) return;
+            const log = document.getElementById('statLog');
+            log.innerText = `Searching for ${sn}...`;
+
+            const { data, error } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            
+            if (data) {
+                document.getElementById('serial_num').value = data.serial_number;
+                document.getElementById('brandField').value = data.brand_model || "";
+                document.getElementById('roomField').value = data.assigned_user_room || "";
+                log.innerText = `Found: ${data.brand_model || 'Hardware Record'}`;
+                loadHistory(sn);
+            } else {
+                log.innerText = "No master hardware record found for that SN.";
+                // Allow manual entry anyway
+                document.getElementById('serial_num').value = sn;
+                document.getElementById('serial_num').readOnly = false;
+                document.getElementById('serial_num').style.background = "white";
+            }
+        }
+
+        async function loadHistory(sn) {
+            const { data } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_date', { ascending: false });
+            const target = document.getElementById('historyTarget');
+            if (data && data.length > 0) {
+                target.innerHTML = data.map(r => `<div><strong>${r.audit_date}</strong>: ${r.site_name}<br><small>${r.notes || ''}</small></div><hr>`).join('');
+            } else { target.innerHTML = "No previous audit logs."; }
+        }
+
+        document.getElementById('auditForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const raw = Object.fromEntries(new FormData(e.target).entries());
+            const site = document.getElementById('siteSelect').value;
+            
+            try {
+                const { error } = await _supabase.from('audit_entries').insert([{ 
+                    ...raw, 
+                    site_name: site,
+                    audit_date: new Date().toISOString().split('T')[0]
+                }]);
+                if (error) throw error;
+                alert("Audit Logged!");
+                loadHistory(raw.serial_number);
+            } catch (err) { alert("Error: " + err.message); }
+        });
+    </script>
+</body>
+</html>
