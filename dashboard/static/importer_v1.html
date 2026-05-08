@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Asgard CSV Importer (v1.0)</title>
+    <title>🦞 Asgard CSV Importer (v1.1)</title>
     <style>
         body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background-color: #f4f4f9; }
         .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -21,8 +21,8 @@
 </head>
 <body>
     <div class="card">
-        <h2>🚀 Site Audit Device Importer</h2>
-        <p>Use this tool to bulk-populate the <strong>site_audit_devices</strong> table from a CSV.</p>
+        <h2>🚀 Site Audit Device Importer (v1.1)</h2>
+        <p>Populate <strong>site_audit_devices</strong> table. Mapping: <em>name, serial, type</em>.</p>
         
         <label>Target Site Name</label>
         <input type="text" id="targetSite" value="Benowa ELC" style="margin-bottom: 20px; font-size: 1.1em; padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px;">
@@ -58,6 +58,7 @@
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                transformHeader: (header) => header.trim().toLowerCase(), // normalize headers
                 complete: (results) => {
                     csvData = results.data;
                     renderPreview();
@@ -86,21 +87,22 @@
 
             for (let i = 0; i < csvData.length; i++) {
                 const row = csvData[i];
-                // Map your CSV columns here:
-                const name = row.name || row.Name || row.Device || "";
-                const serial = row.serial || row.Serial || row.SN || "";
-                const type = row.type || row.Type || "Laptop";
+                
+                // Flexible mapping with trimmed keys
+                const name = row.name || row.device || row['device name'] || row['friendly name'] || "";
+                const serial = row.serial || row.sn || row['serial number'] || row['serial_number'] || "";
+                const type = row.type || row['device type'] || "Laptop";
 
                 if (!serial) {
-                    log.innerText += `Row ${i+1}: Skipped (No Serial)\n`;
+                    log.innerText += `Row ${i+1}: Skipped! Headers found: ${Object.keys(row).join(', ')}\n`;
                     continue;
                 }
 
                 const { error } = await _supabase.from('site_audit_devices').upsert({
                     site_name: site,
-                    name: name,
-                    serial: serial,
-                    type: type
+                    name: name.trim(),
+                    serial: serial.trim(),
+                    type: type.trim()
                 }, { onConflict: 'site_name, serial' });
 
                 if (error) {
@@ -113,7 +115,7 @@
 
             log.innerText += "\n--- IMPORT COMPLETE ---";
             btn.innerText = "Import Finished";
-            alert("Importer has finished processing. Check the log for details.");
+            alert("Importer has finished processing.");
         }
     </script>
 </body>
