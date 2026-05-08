@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v6.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
+        .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+        #btnMagic { background-color: #ff1744; border: 2px solid black; }
+        .search-row { display: flex; gap: 5px; align-items: flex-end; }
+        #deviceNameLookup { border: 2px solid #1976d2; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v6.0) - 🦞</h2>
+    <div class="container">
+        <div class="form-panel">
+            <div class="site-manager">
+                <h3>Site Selection & Magic Report</h3>
+                <label>Active Audit Site</label>
+                <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
+                <button id="btnMagic" onclick="triggerMagicReport()" style="width:100%; margin-top:15px;">🚀 TRIGGER MAGIC UPLOAD</button>
+                <div id="reportStatus" style="font-size:0.75em; margin-top:8px; text-align:center; color:#d32f2f;">[ STANDBY ]</div>
+            </div>
+            <form id="auditForm">
+                <h3>New Audit Entry</h3>
+                <div class="grid">
+                    <div class="full-width">
+                        <label>Recall Device by Name</label>
+                        <select id="deviceNameLookup">
+                            <option value="">-- Select Device --</option>
+                        </select>
+                        <label style="margin-top:10px;">Serial Number (Verified)</label>
+                        <input type="text" id="serial_number" name="serial_number" required placeholder="SN...">
+                    </div>
+                    <div><label>Device Type</label><select name="device_type" id="deviceTypeSelect"><option value="">-- Select Type --</option><option value="Laptop">Laptop</option><option value="Desktop">Desktop</option><option value="Tablet">Tablet</option><option value="Phone">Phone</option><option value="Camera">Camera</option></select></div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    <div><label>Room Reference</label><input type="text" name="assigned_user_room" id="assigned_user_room" readonly style="background:#eee;"></div>
+                    
+                    <div class="full-width audit-header">Compliance Checklist</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Security Check</label><input type="text" name="security_check"></div>
+                    <div><label>Updates Status</label><input type="text" name="update_status"></div>
+                    <div><label>Camera Sync Off</label><select name="camera_sync_off"><option value="true">Yes</option><option value="false" selected>No</option></select></div>
+                    <div><label>OneDrive Sync On</label><select name="onedrive_sync_on"><option value="true" selected>Yes</option><option value="false">No</option></select></div>
+                    <div><label>Photos Count</label><input type="number" name="photos_count"></div>
+                    <div><label>Photos Date</label><input type="date" name="photos_date"></div>
+                    <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="2"></textarea></div>
+                </div>
+                <div id="formError" class="error"></div>
+                <button type="submit" id="submitBtn" style="width:100%;">Commit Audit Record</button>
+            </form>
+        </div>
+        <div class="history-panel">
+            <h3>Todays Session Log</h3>
+            <div id="sessionLogTarget"></div>
+            <h3>Historical Records</h3>
+            <div id="historyTarget">Select device to view history.</div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+        const siteSelect = document.getElementById('siteSelect');
+        const deviceNameLookup = document.getElementById('deviceNameLookup');
+        const serialField = document.getElementById('serial_number');
+
+        async function refreshDeviceNames() {
+            const site = siteSelect.value;
+            deviceNameLookup.innerHTML = '<option value="">-- Loading... --</option>';
+            const { data } = await _supabase.from('site_audit_devices').select('name, serial_number').eq('site_name', site).order('name');
+            if (data && data.length > 0) {
+                deviceNameLookup.innerHTML = '<option value="">-- Select Name --</option>' + 
+                    data.map(d => `<option value="${d.serial_number}">${d.name}</option>`).join('');
+            } else {
+                deviceNameLookup.innerHTML = '<option value="">-- No Devices Found --</option>';
+            }
+        }
+
+        async function loadDeviceData(sn) {
+            if (!sn) return;
+            serialField.value = sn;
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) {
+                form.elements['device_type'].value = device.device_type || '';
+                form.elements['brand_model'].value = device.brand_model || '';
+                form.elements['assigned_user_room'].value = device.assigned_user_room || '';
+            }
+            loadHistory(sn);
+        }
+
+        async function loadHistory(sn) {
+            const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('serial_number', sn).order('audit_date', { ascending: false });
+            const target = document.getElementById('historyTarget');
+            if (data && data.length > 0) {
+                let html = '<table><tr><th>Date</th><th>Room</th><th>OS</th><th>Notes</th></tr>';
+                data.forEach(row => { html += `<tr><td>${row.audit_date.split('T')[0]}</td><td>${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>${row.notes || ''}</td></tr>`; });
+                target.innerHTML = html + '</table>';
+            } else { target.innerHTML = 'No history found.'; }
+        }
+
+        deviceNameLookup.addEventListener('change', (e) => loadDeviceData(e.target.value));
+        siteSelect.addEventListener('change', refreshDeviceNames);
+        refreshDeviceNames();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rawData = Object.fromEntries(new FormData(form).entries());
+            try {
+                await _supabase.from('devices').upsert({ serial_number: rawData.serial_number, device_type: rawData.device_type, brand_model: rawData.brand_model });
+                const { error } = await _supabase.from('audit_entries').insert([{ ...rawData, site_name: siteSelect.value, photos_count: parseInt(rawData.photos_count) || 0 }]);
+                if (error) throw error;
+                alert('Audit Committed! 🦞');
+                loadDeviceData(rawData.serial_number);
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        async function triggerMagicReport() {
+            const btn = document.getElementById('btnMagic');
+            btn.disabled = true; btn.innerText = "PROCESSING...";
+            const { error } = await _supabase.from('report_requests').insert([{ site_name: siteSelect.value, target_date: new Date().toISOString().split('T')[0], status: 'PENDING' }]);
+            if (error) alert("Trigger failed: " + error.message);
+            else alert("Magic Report Triggered!");
+            btn.disabled = false; btn.innerText = "🚀 TRIGGER MAGIC UPLOAD";
+        }
+    </script>
+</body>
+</html>

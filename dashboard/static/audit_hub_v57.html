@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Asgard Audit Hub (v5.5)</title>
+    <title>🦞 Asgard Audit Hub (v5.9)</title>
     <style>
         body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
         .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
@@ -22,10 +22,12 @@
         .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
         #btnMagic { background-color: #ff1744; border: 2px solid black; box-shadow: 0 0 10px rgba(255, 23, 68, 0.3); }
         #btnMagic:disabled { background-color: #ccc; cursor: not-allowed; }
+        .search-row { display: flex; gap: 5px; align-items: flex-end; }
+        .search-row div { flex: 1; }
     </style>
 </head>
 <body>
-    <h2>🛡️ Asgardian Audit Hub (v5.5)</h2>
+    <h2>🛡️ Asgardian Audit Hub (v5.9)</h2>
     <div class="container">
         <div class="form-panel">
             <div class="site-manager">
@@ -43,14 +45,23 @@
                 <h3>New Audit Entry</h3>
                 <div class="grid">
                     <div class="full-width">
-                        <label>Serial Number (Lookup)</label>
-                        <div style="display:flex; gap:5px;">
-                            <input type="text" id="serial_number" name="serial_number" required placeholder="Enter SN...">
-                            <button type="button" id="fetchBtn" style="background:#1976d2; margin:0; white-space:nowrap;">Load History</button>
+                        <label>Lookup Device (SN or Select Name)</label>
+                        <div class="search-row">
+                            <div style="flex: 0.8;">
+                                <input type="text" id="serial_number" name="serial_number" required placeholder="Serial Number...">
+                            </div>
+                            <div>
+                                <select id="deviceNameLookup">
+                                    <option value="">-- Loading Devices... --</option>
+                                </select>
+                            </div>
                         </div>
+                        <button type="button" id="fetchBtn" style="background:#1976d2; margin-top:5px; width:100%;">🔍 Find & Load Records</button>
                     </div>
                     <div><label>Device Type</label><select name="device_type" id="deviceTypeSelect"><option value="">-- Select Type --</option><option value="Laptop">Laptop</option><option value="Desktop">Desktop</option><option value="Tablet">Tablet</option><option value="Phone">Phone</option><option value="Camera">Camera</option></select></div>
                     <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    <div><label>Room/User (Display Only)</label><input type="text" name="assigned_user_room" id="assigned_user_room" readonly style="background:#eee;"></div>
+                    
                     <div class="full-width audit-header">Compliance Data (Auto-Timestamped)</div>
                     <div><label>Windows OS</label><input type="text" name="windows_os"></div>
                     <div><label>iOS Version</label><input type="text" name="ios_version"></div>
@@ -82,6 +93,7 @@
         const form = document.getElementById('auditForm');
         const siteSelect = document.getElementById('siteSelect');
         const deviceTypeSelect = document.getElementById('deviceTypeSelect');
+        const deviceNameLookup = document.getElementById('deviceNameLookup');
         const formError = document.getElementById('formError');
 
         async function triggerMagicReport() {
@@ -110,30 +122,80 @@
         }
 
         async function refreshSites() {
-            const { data } = await _supabase.from('sites').select('site_name').order('site_name');
-            if (data) { siteSelect.innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join(''); loadSessionLog(); }
+            const { data, error } = await _supabase.from('sites').select('site_name').order('site_name');
+            if (error) console.error("Refresh Sites Error:", error);
+            if (data) { 
+                siteSelect.innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join(''); 
+                loadSessionLog();
+                refreshDeviceNames();
+            }
         }
+
+        async function refreshDeviceNames() {
+            const site = siteSelect.value;
+            if (!site) return;
+            deviceNameLookup.innerHTML = '<option value="">-- Loading... --</option>';
+            
+            // Logic: select from site_audit_devices where site_name = current site
+            const { data, error } = await _supabase
+                .from('site_audit_devices')
+                .select('name, serial_number')
+                .eq('site_name', site)
+                .order('name');
+            
+            if (error) {
+                console.error("Supabase Error (site_audit_devices):", error);
+                deviceNameLookup.innerHTML = '<option value="">-- Error Loading Devices --</option>';
+                return;
+            }
+            
+            if (data && data.length > 0) {
+                deviceNameLookup.innerHTML = '<option value="">-- Select Device Name --</option>' + 
+                    data.map(d => `<option value="${d.serial_number}">${d.name}</option>`).join('');
+            } else {
+                deviceNameLookup.innerHTML = '<option value="">-- No Devices Found --</option>';
+            }
+        }
+
         refreshSites();
 
-        siteSelect.addEventListener('change', loadSessionLog);
+        siteSelect.addEventListener('change', () => {
+            loadSessionLog();
+            refreshDeviceNames();
+        });
+
+        deviceNameLookup.addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.getElementById('serial_number').value = e.target.value;
+                // Auto-trigger fetch logic
+                triggerFetch(e.target.value);
+            }
+        });
+
+        async function triggerFetch(sn) {
+            if (!sn) return;
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) {
+                form.elements['device_type'].value = device.device_type || '';
+                form.elements['brand_model'].value = device.brand_model || '';
+                form.elements['assigned_user_room'].value = device.assigned_user_room || '';
+                toggleFields();
+            }
+            loadHistory(sn);
+        }
+
+        document.getElementById('fetchBtn').addEventListener('click', () => {
+            const sn = document.getElementById('serial_number').value.trim();
+            triggerFetch(sn);
+        });
 
         async function loadSessionLog() {
             const site = siteSelect.value;
             const target = document.getElementById('sessionLogTarget');
-            // Precise Date Handling: Get the local date in YYYY-MM-DD
             const now = new Date();
             const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-            
             if (!site) return;
-
-            console.log("Fetching session log for:", site, "on date:", today);
-
-            const { data, error } = await _supabase
-                .from('audit_entries')
-                .select('*, devices(*)')
-                .eq('site_name', site)
-                .ilike('audit_date', today + '%') // Use LIKE to catch full timestamps
-                .order('audit_date', { ascending: false });
+            const { data, error } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', site).ilike('audit_date', today + '%').order('audit_date', { ascending: false });
             if (data && data.length > 0) {
                 let html = '<table style="background:#e3f2fd; border: 1px solid #1976d2;"><tr><th>Room</th><th>User/Model</th><th>OS</th><th>Photos</th></tr>';
                 data.forEach(row => { html += `<tr><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.devices?.brand_model || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>${row.photos_count || 0}</td></tr>`; });
@@ -151,21 +213,17 @@
             } else { target.innerHTML = '<strong>No records found.</strong>'; }
         }
 
-        document.getElementById('fetchBtn').addEventListener('click', async () => {
-            const sn = document.getElementById('serial_number').value.trim();
-            if (!sn) return;
-            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
-            if (device) { form.elements['device_type'].value = device.device_type || ''; form.elements['brand_model'].value = device.brand_model || ''; toggleFields(); }
-            loadHistory(sn);
-        });
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault(); formError.textContent = '';
             const site = siteSelect.value;
             const formData = new FormData(form);
             const rawData = Object.fromEntries(formData.entries());
             try {
-                await _supabase.from('devices').upsert({ serial_number: rawData.serial_number, device_type: rawData.device_type, brand_model: rawData.brand_model });
+                await _supabase.from('devices').upsert({ 
+                    serial_number: rawData.serial_number, 
+                    device_type: rawData.device_type, 
+                    brand_model: rawData.brand_model
+                });
                 const { error } = await _supabase.from('audit_entries').insert([{ serial_number: rawData.serial_number, site_name: site, windows_os: rawData.windows_os, ios_version: rawData.ios_version, update_status: rawData.update_status, security_check: rawData.security_check, camera_sync_off: rawData.camera_sync_off === 'true', onedrive_sync_on: rawData.onedrive_sync_on === 'true', photos_count: parseInt(rawData.photos_count) || 0, photos_date: rawData.photos_date || null, notes: rawData.notes }]);
                 if (error) throw error;
                 alert(`Audit committed for ${site}! 🦞`); loadSessionLog(); loadHistory(rawData.serial_number); form.elements['notes'].value = '';
