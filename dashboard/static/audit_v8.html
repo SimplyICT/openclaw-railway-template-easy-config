@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v8.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
+        #debugInfo { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.75em; border-radius: 4px; margin-bottom: 15px; }
+        .selected-banner { background: #e3f2fd; padding: 10px; border-left: 5px solid #1976d2; margin-bottom: 15px; font-weight: bold; color: #1976d2; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v8.0)</h2>
+    <div id="debugInfo">System: Initializing Pipe...</div>
+    <div class="container">
+        <div class="form-panel">
+            <div class="site-manager">
+                <h3>Site Selection</h3>
+                <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button onclick="refreshDeviceNames()" style="background:#444; font-size:0.75em; flex:1;">🔄 Refresh List</button>
+                    <button onclick="triggerMagicReport()" style="background:#ff1744; font-size:0.75em; flex:1;">🚀 Upload Magic</button>
+                </div>
+            </div>
+            
+            <div id="selectionArea">
+                <label>Select Device Name from Site Audit</label>
+                <select id="deviceNameLookup">
+                    <option value="">-- Loading Devices... --</option>
+                </select>
+            </div>
+
+            <div id="activeDeviceBanner" class="selected-banner" style="display:none;">
+                Active: <span id="displayDeviceName">None</span>
+            </div>
+
+            <form id="auditForm">
+                <div class="grid">
+                    <div class="full-width"><label>Serial Number</label><input type="text" id="serial_number" name="serial_number" required readonly style="background:#eee;"></div>
+                    <div><label>Device Type</label><select name="device_type" id="deviceType"><option value="Laptop">Laptop</option><option value="Desktop">Desktop</option><option value="Tablet">Tablet</option><option value="Phone">Phone</option><option value="Camera">Camera</option></select></div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    
+                    <div class="full-width audit-header">Work Action</div>
+                    <div class="full-width">
+                        <label>Action Type</label>
+                        <select name="action_type" id="actionTypeField">
+                            <option value="Annual Audit">Annual Audit</option>
+                            <option value="Repair/Maintenance">Repair/Maintenance</option>
+                            <option value="Decommission">Decommission</option>
+                            <option value="New Setup">New Setup</option>
+                            <option value="Ad-Hoc Check">Ad-Hoc Check</option>
+                        </select>
+                    </div>
+
+                    <div class="full-width audit-header">Compliance Checklist</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Security Check</label><input type="text" name="security_check"></div>
+                    <div><label>Updates Status</label><input type="text" name="update_status"></div>
+                    <div><label>Camera Sync Off</label><select name="camera_sync_off"><option value="true">Yes</option><option value="false" selected>No</option></select></div>
+                    <div><label>OneDrive Sync On</label><select name="onedrive_sync_on"><option value="true" selected>Yes</option><option value="false">No</option></select></div>
+                    <div><label>Photos Count</label><input type="number" name="photos_count"></div>
+                    <div><label>Photos Date</label><input type="date" name="photos_date"></div>
+                    <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="4"></textarea></div>
+                </div>
+                <button type="submit" style="width:100%; font-size:1.1em; background:#d32f2f; margin-top:20px;">Commit Audit Record</button>
+            </form>
+        </div>
+        <div class="history-panel">
+            <h3>Recent Site History</h3>
+            <div id="historyTarget">Select a device.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const debug = document.getElementById('debugInfo');
+        const form = document.getElementById('auditForm');
+
+        async function refreshDeviceNames() {
+            const { data, error } = await _supabase.from('site_audit_devices').select('name, serial').order('name');
+            if (data) {
+                const lookup = document.getElementById('deviceNameLookup');
+                lookup.innerHTML = '<option value="">-- Select Name --</option>' + 
+                    data.map(d => `<option value="${d.serial}" data-name="${d.name}">${d.name}</option>`).join('');
+                debug.innerText = "Success: " + data.length + " names loaded.";
+            }
+        }
+
+        async function loadDeviceData(sn, name) {
+            if (!sn) return;
+            document.getElementById('serial_number').value = sn;
+            document.getElementById('displayDeviceName').innerText = name;
+            document.getElementById('activeDeviceBanner').style.display = 'block';
+            
+            const { data } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (data) {
+                form.elements['brand_model'].value = data.brand_model || '';
+                form.elements['device_type'].value = data.device_type || 'Laptop';
+                if (data.action_type) form.elements['action_type'].value = data.action_type;
+                toggleFields();
+            }
+            loadHistory(sn);
+        }
+
+        document.getElementById('deviceNameLookup').addEventListener('change', (e) => {
+            const opt = e.target.options[e.target.selectedIndex];
+            loadDeviceData(e.target.value, opt.getAttribute('data-name'));
+        });
+
+        async function loadHistory(sn) {
+            const { data } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_date', { ascending: false });
+            const target = document.getElementById('historyTarget');
+            if (data && data.length > 0) {
+                let html = '<table><tr><th>Date</th><th>Action</th><th>Notes</th></tr>';
+                data.forEach(row => { html += `<tr><td>${row.audit_date.split('T')[0]}</td><td>${row.action_type || 'Audit'}</td><td>${row.notes || ''}</td></tr>`; });
+                target.innerHTML = html + '</table>';
+            } else { target.innerHTML = '<p>No history.</p>'; }
+        }
+
+        function toggleFields() {
+            const type = document.getElementById('deviceType').value;
+            const isPC = (type === 'Laptop' || type === 'Desktop');
+            form.elements['windows_os'].disabled = !isPC;
+            form.elements['ios_version'].disabled = (type !== 'Tablet' && type !== 'Phone');
+            [form.elements['windows_os'], form.elements['ios_version']].forEach(el => el.style.backgroundColor = el.disabled ? "#eee" : "white");
+        }
+        document.getElementById('deviceType').addEventListener('change', toggleFields);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rawData = Object.fromEntries(new FormData(form).entries());
+            try {
+                await _supabase.from('devices').upsert({ serial_number: rawData.serial_number, device_type: rawData.device_type, brand_model: rawData.brand_model });
+                const { error } = await _supabase.from('audit_entries').insert([{ ...rawData, site_name: document.getElementById('siteSelect').value, photos_count: parseInt(rawData.photos_count) || 0 }]);
+                if (error) throw error;
+                alert('Success! 🦞');
+                loadHistory(rawData.serial_number);
+                form.elements['notes'].value = '';
+            } catch (err) { alert('Failed: ' + err.message); }
+        });
+
+        async function triggerMagicReport() {
+            const site = document.getElementById('siteSelect').value;
+            await _supabase.from('report_requests').insert([{ site_name: site, target_date: new Date().toISOString().split('T')[0], status: 'PENDING' }]);
+            alert("Sent!");
+        }
+
+        refreshDeviceNames();
+    </script>
+</body>
+</html>
