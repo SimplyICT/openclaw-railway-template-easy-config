@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🛡️ Master Asset Linker & Importer (v2.0)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background-color: #f4f4f9; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 15px; }
+        .upload-zone { border: 3px dashed #ccc; padding: 40px; text-align: center; cursor: pointer; border-radius: 8px; margin-bottom: 20px; }
+        .status { margin-top: 20px; font-family: monospace; font-size: 0.85em; padding: 15px; background: #222; color: #0f0; border-radius: 4px; height: 300px; overflow-y: auto; white-space: pre-wrap; }
+        button { background: #d32f2f; color: white; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        select, input { width: 100%; padding: 12px; margin-bottom: 15px; box-sizing: border-box; font-size: 1em; }
+        .warning { background: #fff3e0; border-left: 5px solid #ff9800; padding: 15px; margin-bottom: 20px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🛡️ Master Asset Linker (v2.0)</h2>
+        <div class="warning">
+            This tool performs a <strong>Deep Sync</strong>: It populates Inventory (devices), Recall Lists (site_audit_devices), and Compliance Logs (audit_entries) in one pass.
+        </div>
+        
+        <label>Select Target Audit Site</label>
+        <select id="siteSelect">
+            <option value="Benowa Hills ELC">Benowa Hills ELC</option>
+            <option value="Benowa ELC">Benowa ELC</option>
+        </select>
+
+        <div class="upload-zone" onclick="document.getElementById('csvInput').click()">
+            <p id="uploadPrompt">📁 Click to select Benowa Hills CSV</p>
+            <input type="file" id="csvInput" accept=".csv" style="display:none">
+        </div>
+
+        <div id="previewArea" style="display:none;">
+            <button id="importBtn" onclick="runMasterImport()">🚀 START MASTER DEEP SYNC</button>
+        </div>
+
+        <div id="log" class="status" style="display:none;">Initializing...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let csvData = [];
+
+        document.getElementById('csvInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true, skipEmptyLines: 'greedy',
+                complete: (results) => {
+                    csvData = results.data;
+                    document.getElementById('previewArea').style.display = 'block';
+                    document.getElementById('uploadPrompt').innerText = csvData.length + " devices detected in CSV.";
+                }
+            });
+        });
+
+        async function runMasterImport() {
+            const activeSite = document.getElementById('siteSelect').value;
+            const logPanel = document.getElementById('log');
+            logPanel.style.display = 'block';
+            logPanel.innerText = `INITIATE DEEP SYNC FOR: ${activeSite}\n\n`;
+
+            for (let i = 0; i < csvData.length; i++) {
+                const row = csvData[i];
+                let name = "", serial = "", type = "Laptop", model = "";
+
+                // Find fields regardless of header casing
+                for (let key in row) {
+                    const clean = key.trim().toLowerCase();
+                    const val = (row[key] || "").trim();
+                    if (['serial', 'sn', 'serial number', 'serial_number'].includes(clean)) serial = val;
+                    if (['name', 'device', 'device name', 'friendly name', 'assigned user/room'].includes(clean)) name = val;
+                    if (['type', 'device type'].includes(clean)) type = val;
+                    if (['brand/model', 'model'].includes(clean)) model = val;
+                }
+
+                if (!serial) continue;
+
+                try {
+                    // 1. Tag the RECALL list with the Site Name
+                    await _supabase.from('site_audit_devices').upsert({
+                        serial: serial,
+                        name: name || `Device ${serial.slice(-4)}`,
+                        type: type || "Laptop",
+                        site_name: activeSite // Added Site Column
+                    }, { onConflict: 'serial' });
+
+                    // 2. Update Master Inventory
+                    await _supabase.from('devices').upsert({
+                        serial_number: serial,
+                        device_type: type || "Laptop",
+                        brand_model: model,
+                        assigned_user_room: name
+                    }, { onConflict: 'serial_number' });
+
+                    // 3. Create a Compliance Log Entry (This is what appeared missing before)
+                    await _supabase.from('audit_entries').upsert({
+                        serial_number: serial,
+                        site_name: activeSite,
+                        audit_date: new Date().toISOString().split('T')[0],
+                        notes: "Imported from CSV"
+                    }, { onConflict: 'serial_number, site_name' });
+
+                    logPanel.innerText += `Row ${i+1} [${serial}]: SYNCED TO MASTER + COMPLIANCE\n`;
+                } catch (e) {
+                    logPanel.innerText += `Row ${i+1} [${serial}]: FAILED - ${e.message}\n`;
+                }
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }
+            logPanel.innerText += "\n--- SYNC COMPLETE ---";
+            alert("Deep Sync Finished. Check the Audit Hub for the new site data.");
+        }
+    </script>
+</body>
+</html>
