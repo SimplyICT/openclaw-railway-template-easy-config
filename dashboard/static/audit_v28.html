@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v28.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1400px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 50% 50%; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        h2, h3 { color: #333; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; margin-top: 0; }
+        .status-bar { background: #333; color: #0f0; padding: 8px; font-family: monospace; font-size: 0.75em; border-radius: 4px; margin-bottom: 10px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; text-transform: uppercase; }
+        .history-item { cursor: pointer; border: 1px solid #ddd; margin-bottom: 5px; padding: 8px; border-radius: 4px; transition: 0.2s; background: #fff; font-size: 0.85em; }
+        .history-item:hover { background: #e3f2fd; border-color: #1976d2; }
+        .viewer-box { background: #f1f8e9; border: 1px solid #4caf50; padding: 15px; border-radius: 4px; }
+        .viewer-val { font-weight: bold; color: #1b5e20; border-bottom: 1px dashed #ccc; padding: 4px 0; margin-bottom: 8px; min-height: 1.2em; font-family: monospace; word-break: break-all; }
+        .viewer-label { font-size: 0.7em; color: #666; text-transform: uppercase; font-weight: bold; }
+        .grid-viewer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 4px; background: #eee; cursor: pointer; font-weight: bold; color: #666; }
+        .mode-btn.active { background: #1976d2; color: white; border-color: #1565c0; }
+        .report-panel { background: #fff3e0; border: 1px solid #ff9800; padding: 15px; border-radius: 4px; margin-top: 20px; }
+        .download-btn { background-color: #1976d2; margin-top: 10px; color: white; text-decoration: none; text-align: center; display: block; padding: 10px; font-weight: bold; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v28.0)</h2>
+    <div id="statLog" class="status-bar">System: Operational. Recall Viewer Restored.</div>
+    
+    <div class="container">
+        <!-- FORM A: ENTRY -->
+        <div class="form-side">
+            <div class="card">
+                <h3>FORM A: Data Entry</h3>
+                <div class="mode-selector">
+                    <button id="btnRecallMode" class="mode-btn active" onclick="switchEntryMode('recall')">🔍 RECALL DEVICE</button>
+                    <button id="btnNewMode" class="mode-btn" onclick="switchEntryMode('new')">➕ NEW ASSET</button>
+                </div>
+
+                <div class="site-manager">
+                    <label>Target Site</label>
+                    <select id="siteSelect"><option value="Benowa Hills ELC">Benowa Hills ELC</option><option value="Benowa ELC">Benowa ELC</option></select>
+                </div>
+
+                <div id="recallControls" style="display:grid; grid-template-columns: 1fr auto; gap:5px; margin-top:10px;">
+                    <select id="nameLookup"><option value="">-- Recall Device --</option></select>
+                    <button onclick="performRecall()" style="margin:0; background:#1976d2;">LOAD DATA</button>
+                </div>
+
+                <form id="auditForm">
+                    <div class="grid">
+                        <div class="full-width">
+                            <label>Serial Number</label>
+                            <input type="text" id="serial_num" name="serial_number" required readonly style="background:#eee;">
+                        </div>
+                        <div><label>Brand/Model</label><input type="text" name="brand_model" id="brandField"></div>
+                        <div><label>Room</label><input type="text" name="assigned_user_room" id="roomField"></div>
+                        
+                        <div class="full-width audit-header">Compliance Update</div>
+                        <div><label>OneDrive (Status)</label><input type="text" name="onedrive_status"></div>
+                        <div><label>Windows Updates</label><input type="text" name="windows_updates"></div>
+                        <div><label>Security Check</label><input type="text" name="security_check" value="PASS"></div>
+                        <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                        <div><label>iOS Update</label><input type="text" name="update_status"></div>
+                        <div><label>Camera Sync Off</label>
+                            <select name="camera_sync_off"><option value="true">Yes</option><option value="false" selected>No</option></select>
+                        </div>
+                        <div><label>OneDrive Sync On</label>
+                            <select name="onedrive_sync_on"><option value="true" selected>Yes</option><option value="false">No</option></select>
+                        </div>
+                        <div><label>Photos Count</label><input type="number" name="photos_count" value="0"></div>
+                        <div class="full-width"><label>Photos Date</label><input type="date" name="photos_date"></div>
+                        <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="3"></textarea></div>
+                    </div>
+                    <button type="submit" id="submitBtn" style="width:100%; margin-top:15px; background:#1b5e20;">COMMIT LOG</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- FORM B: RECALL VIEWER & REPORT -->
+        <div class="viewer-side">
+            <div class="card viewer-box">
+                <h3>FORM B: Previous Data Vault</h3>
+                <div id="historyListArea" style="max-height: 150px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #4caf50;">
+                    <p style="font-size:0.8em; color:#666; padding:10px;">Select a room in Form A, then click "LOAD DATA" to see history.</p>
+                </div>
+                
+                <div id="historicalDetails">
+                    <div style="text-align:center; padding:20px; color:#999; border:1px dashed #ccc;">DEVICE FINDINGS WILL SHOW HERE</div>
+                </div>
+
+                <div class="report-panel">
+                    <h4 style="margin:0 0 10px 0; color:#e65100;">Generate Professional Word Report</h4>
+                    <input type="date" id="exportDate" style="margin-bottom:10px;">
+                    <button id="btnGenerate" onclick="triggerWordGeneration()" style="width:100%; background:#e65100;">GENERATE WORD FILE</button>
+                    <div id="reportStatus" style="font-family:monospace; font-size:0.75em; margin-top:10px; text-align:center;">[ STANDBY ]</div>
+                    
+                    <div id="downloadArea" style="display:none; margin-top: 15px;">
+                        <a id="downloadLink" class="download-btn" href="#" target="_blank">📥 DOWNLOAD .DOCX</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const form = document.getElementById('auditForm');
+        let globalRecallMemory = [];
+
+        async function init() {
+            const { data } = await _supabase.from('sites').select('site_name').order('site_name');
+            if (data) document.getElementById('siteSelect').innerHTML = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join('');
+            document.getElementById('exportDate').value = new Date().toISOString().split('T')[0];
+            refreshNames();
+        }
+
+        function switchEntryMode(mode) {
+            document.getElementById('btnRecallMode').classList.toggle('active', mode === 'recall');
+            document.getElementById('btnNewMode').classList.toggle('active', mode === 'new');
+            document.getElementById('recallControls').style.display = mode === 'recall' ? 'grid' : 'none';
+            if (mode === 'new') { form.reset(); document.getElementById('serial_num').readOnly = false; document.getElementById('serial_num').style.background = "#fff"; }
+            else { document.getElementById('serial_num').readOnly = true; document.getElementById('serial_num').style.background = "#eee"; }
+        }
+
+        async function refreshNames() {
+            const site = document.getElementById('siteSelect').value;
+            const { data: entries } = await _supabase.from('audit_entries').select('serial_number').eq('site_name', site);
+            const serials = [...new Set((entries || []).map(e => e.serial_number))];
+            const { data: devices } = await _supabase.from('devices').select('serial_number, assigned_user_room').in('serial_number', serials).order('assigned_user_room');
+            if (devices) document.getElementById('nameLookup').innerHTML = '<option value="">-- Select Room --</option>' + devices.map(d => `<option value="${d.serial_number}">${d.assigned_user_room || d.serial_number}</option>`).join('');
+        }
+
+        async function performRecall() {
+            const sn = document.getElementById('nameLookup').value;
+            if (!sn) return;
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) { document.getElementById('serial_num').value = device.serial_number; document.getElementById('brandField').value = device.brand_model || ""; document.getElementById('roomField').value = device.assigned_user_room || ""; }
+            
+            const { data: history } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_date', { ascending: false });
+            globalRecallMemory = history || [];
+            if (globalRecallMemory.length > 0) {
+                document.getElementById('historyListArea').innerHTML = globalRecallMemory.map((h, i) => `<div class="history-item" onclick="showStaticReport(${i})"><strong>${h.audit_date}</strong><br><small>${(h.notes || "").substring(0, 30)}</small></div>`).join('');
+                showStaticReport(0); 
+                const last = globalRecallMemory[0];
+                for (let key in last) { if (form.elements[key]) { if (form.elements[key].type === 'select-one') form.elements[key].value = String(last[key]); else form.elements[key].value = last[key]; } }
+            }
+        }
+
+        function showStaticReport(index) {
+            const h = globalRecallMemory[index];
+            const rows = [['Audit Date', h.audit_date], ['Serial', h.serial_number], ['OneDrive', h.onedrive_status], ['Security', h.security_check], ['OS/iOS', h.windows_os || h.update_status], ['Cam Sync OFF', h.camera_sync_off ? 'YES' : 'NO'], ['OD Sync ON', h.onedrive_sync_on ? 'YES' : 'NO'], ['Photos', h.photos_count], ['Notes', h.notes]];
+            let html = `<div class="grid-viewer">`;
+            rows.forEach(r => { html += `<div><div class="viewer-label">${r[0]}</div><div class="viewer-val">${r[1] || '---'}</div></div>`; });
+            document.getElementById('historicalDetails').innerHTML = html + `</div>`;
+        }
+
+        async function triggerWordGeneration() {
+            const btn = document.getElementById('btnGenerate');
+            const status = document.getElementById('reportStatus');
+            const downloadArea = document.getElementById('downloadArea');
+            const site = document.getElementById('siteSelect').value;
+            const date = document.getElementById('exportDate').value;
+            btn.disabled = true; btn.innerText = "⌛ PROCESSING...";
+            status.innerText = "Sending generation command...";
+            downloadArea.style.display = 'none';
+
+            try {
+                const { data } = await _supabase.from('report_requests').insert([{ site_name: site, target_date: date, status: 'PENDING' }]).select();
+                const poller = setInterval(async () => {
+                    const { data: update } = await _supabase.from('report_requests').select('*').eq('id', data[0].id).single();
+                    if (update.status === 'SUCCESS') {
+                        clearInterval(poller);
+                        btn.disabled = false; btn.innerText = "✅ CREATED";
+                        status.innerText = "Complete.";
+                        document.getElementById('downloadLink').href = `https://openclaw-bruce-production.up.railway.app/dashboard/reports/report_${site.replace(/ /g, '_')}_${date}.docx`;
+                        downloadArea.style.display = 'block';
+                    }
+                }, 2000);
+            } catch (err) { btn.disabled = false; status.innerText = "Error: " + err.message; }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const raw = Object.fromEntries(new FormData(form).entries());
+            const site = document.getElementById('siteSelect').value;
+            await _supabase.from('audit_entries').insert([{ ...raw, site_name: site, audit_date: new Date().toISOString(), camera_sync_off: raw.camera_sync_off === 'true', onedrive_sync_on: raw.onedrive_sync_on === 'true', photos_count: parseInt(raw.photos_count) || 0 }]);
+            alert("Committed!"); refreshNames();
+        });
+
+        document.getElementById('siteSelect').addEventListener('change', refreshNames);
+        init();
+    </script>
+</body>
+</html>
