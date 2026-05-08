@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asgard CSV Importer (v1.5)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background-color: #f4f4f9; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; }
+        .upload-zone { border: 3px dashed #ccc; padding: 40px; text-align: center; cursor: pointer; border-radius: 8px; margin-bottom: 20px; transition: 0.3s; }
+        .upload-zone:hover { border-color: #d32f2f; background: #fff8f8; }
+        .status { margin-top: 20px; font-family: monospace; font-size: 0.85em; padding: 15px; background: #222; color: #0f0; border-radius: 4px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        button { background: #d32f2f; color: white; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; }
+        select, input { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🚀 Site Audit Device Importer (v1.5)</h2>
+        
+        <label>Target Site</label>
+        <select id="siteSelect">
+            <option value="298297d2-937b-4209-add9-c5c0a1a802e7">Benowa Hills ELC</option>
+            <option value="5f47d603-0f07-48bb-81ad-1df5b5dd70d8">Benowa ELC</option>
+        </select>
+
+        <div class="upload-zone" onclick="document.getElementById('csvInput').click()">
+            <p id="uploadPrompt">📁 Drop CSV here or click to browse</p>
+            <input type="file" id="csvInput" accept=".csv" style="display:none">
+        </div>
+
+        <div id="previewArea" style="display:none;">
+            <button id="importBtn" onclick="runImport()">Confirm & Start Deep Import</button>
+        </div>
+
+        <div id="log" class="status" style="display:none;">Ready...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let csvData = [];
+
+        document.getElementById('csvInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true, skipEmptyLines: 'greedy',
+                complete: (results) => {
+                    csvData = results.data;
+                    document.getElementById('previewArea').style.display = 'block';
+                    document.getElementById('uploadPrompt').innerText = csvData.length + " rows ready.";
+                }
+            });
+        });
+
+        async function runImport() {
+            const siteID = document.getElementById('siteSelect').value;
+            const siteName = document.getElementById('siteSelect').options[document.getElementById('siteSelect').selectedIndex].text;
+            const logPanel = document.getElementById('log');
+            logPanel.style.display = 'block';
+            logPanel.innerText = `Starting Import for ${siteName}...\n\n`;
+
+            for (let i = 0; i < csvData.length; i++) {
+                const row = csvData[i];
+                let name = "", serial = "", type = "Laptop", room = "";
+
+                for (let key in row) {
+                    const clean = key.trim().toLowerCase();
+                    const val = (row[key] || "").trim();
+                    if (['serial', 'sn', 'serial number', 'serial_number', 'asset'].includes(clean)) serial = val;
+                    if (['name', 'device', 'device name', 'friendly name', 'room', 'assigned user/room'].includes(clean)) { name = val; room = val; }
+                    if (['type', 'device type'].includes(clean)) type = val;
+                }
+
+                if (!serial) {
+                    logPanel.innerText += `Row ${i+1}: Skipped (Empty Serial)\n`;
+                    continue;
+                }
+
+                try {
+                    // 1. Update site_audit_devices (The Recall List) 
+                    // No site_name used here to avoid schema error
+                    await _supabase.from('site_audit_devices').upsert({
+                        serial: serial,
+                        name: name || `Device ${serial.slice(-4)}`,
+                        type: type || "Laptop"
+                    }, { onConflict: 'serial' });
+
+                    // 2. Update devices (The Master Database)
+                    await _supabase.from('devices').upsert({
+                        serial_number: serial,
+                        device_type: type || "Laptop",
+                        brand_model: row['Brand/Model'] || row['model'] || "",
+                        assigned_user_room: room
+                    }, { onConflict: 'serial_number' });
+
+                    logPanel.innerText += `Row ${i+1} [${serial}]: SUCCESS\n`;
+                } catch (e) {
+                    logPanel.innerText += `Row ${i+1} [${serial}]: ERROR - ${e.message}\n`;
+                }
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }
+            logPanel.innerText += "\n--- PROCESS FINISHED ---";
+        }
+    </script>
+</body>
+</html>
