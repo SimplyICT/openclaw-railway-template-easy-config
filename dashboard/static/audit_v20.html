@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Asgard Audit v20.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1400px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 50% 50%; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        h2, h3 { color: #333; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; margin-top: 0; }
+        .status-bar { background: #333; color: #0f0; padding: 8px; font-family: monospace; font-size: 0.75em; border-radius: 4px; margin-bottom: 10px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; text-transform: uppercase; }
+        .history-item { cursor: pointer; border: 1px solid #ddd; margin-bottom: 5px; padding: 10px; border-radius: 4px; transition: 0.2s; }
+        .history-item:hover { background: #e3f2fd; border-color: #1976d2; }
+        .viewer-box { background: #f1f8e9; border: 1px solid #4caf50; padding: 15px; border-radius: 4px; height: 100%; }
+        .viewer-val { font-weight: bold; color: #1b5e20; border-bottom: 1px dashed #ccc; padding: 2px 0; margin-bottom: 5px; min-height: 1.2em; font-family: monospace; }
+        .viewer-label { font-size: 0.7em; color: #666; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v20.0)</h2>
+    <div id="statLog" class="status-bar">Ready for Multi-Historical Audit Selection</div>
+    
+    <div class="container">
+        <!-- FORM 2: ACTIVE UPDATE FORM (THE ONE THAT ADDS NEW RECORDS) -->
+        <div class="form-side">
+            <div class="card">
+                <h3>FORM A: New Audit Entry</h3>
+                <div class="site-manager">
+                    <label>Target Site</label>
+                    <select id="siteSelect"><option value="Benowa Hills ELC">Benowa Hills ELC</option><option value="Benowa ELC">Benowa ELC</option></select>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap:5px; margin-top:10px;">
+                    <select id="nameLookup"><option value="">-- Recall Device --</option></select>
+                    <button onclick="performRecall()" style="margin:0; background:#1976d2;">LOAD DATA</button>
+                </div>
+
+                <form id="auditForm">
+                    <div class="grid">
+                        <div class="full-width"><label>Serial Number</label><input type="text" id="serial_num" name="serial_number" required readonly style="background:#eee;"></div>
+                        <div><label>Brand/Model</label><input type="text" name="brand_model" id="brandField"></div>
+                        <div><label>Room</label><input type="text" name="assigned_user_room" id="roomField"></div>
+                        
+                        <div class="full-width audit-header">Live Compliance Update</div>
+                        <div><label>OneDrive (Status)</label><input type="text" name="onedrive_status"></div>
+                        <div><label>Windows Updates</label><input type="text" name="windows_updates"></div>
+                        <div><label>Security Check</label><input type="text" name="security_check" value="PASS"></div>
+                        <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                        <div><label>iOS Update</label><input type="text" name="update_status"></div>
+                        <div><label>Camera Sync Off</label>
+                            <select name="camera_sync_off"><option value="true">Yes</option><option value="false" selected>No</option></select>
+                        </div>
+                        <div><label>OneDrive Sync On</label>
+                            <select name="onedrive_sync_on"><option value="true" selected>Yes</option><option value="false">No</option></select>
+                        </div>
+                        <div><label>Photos Count</label><input type="number" name="photos_count" value="0"></div>
+                        <div class="full-width"><label>Photos Date</label><input type="date" name="photos_date"></div>
+                        <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="3"></textarea></div>
+                    </div>
+                    <button type="submit" style="width:100%; margin-top:15px; background:#1b5e20;">COMMIT NEW AUDIT LOG</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- FORM 1: HISTORICAL DATA VIEWER (THE ONE THAT SHOWS OLD REPORTS) -->
+        <div class="viewer-side">
+            <div class="card viewer-box">
+                <h3>FORM B: Record Recall (Reference)</h3>
+                <div id="historyListArea" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px; border-bottom: 2px solid #4caf50;">
+                    <p style="font-size:0.8em; color:#666;">Select a device to see historical audit versions.</p>
+                </div>
+                
+                <div id="historicalDetails">
+                    <div style="text-align:center; padding:50px; color:#999;">SELECT AN AUDIT DATE ABOVE TO RECALL FULL DATA REPORT</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const form = document.getElementById('auditForm');
+
+        async function refreshNames() {
+            const site = document.getElementById('siteSelect').value;
+            const { data: entries } = await _supabase.from('audit_entries').select('serial_number').eq('site_name', site);
+            const serials = [...new Set((entries || []).map(e => e.serial_number))];
+            const { data: devices } = await _supabase.from('devices').select('serial_number, assigned_user_room').in('serial_number', serials).order('assigned_user_room');
+            const nameDropdown = document.getElementById('nameLookup');
+            if (devices) nameDropdown.innerHTML = '<option value="">-- Select Room --</option>' + devices.map(d => `<option value="${d.serial_number}">${d.assigned_user_room || d.serial_number}</option>`).join('');
+        }
+
+        async function performRecall() {
+            const sn = document.getElementById('nameLookup').value;
+            if (!sn) return;
+            const log = document.getElementById('statLog');
+            
+            // Recall Hardware
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) {
+                document.getElementById('serial_num').value = device.serial_number;
+                document.getElementById('brandField').value = device.brand_model || "";
+                document.getElementById('roomField').value = device.assigned_user_room || "";
+            }
+
+            // Recall Compliance for FORM A (Latest only for updating)
+            const { data: last } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_date', { ascending: false }).limit(1).maybeSingle();
+            if (last) {
+                form.elements['onedrive_status'].value = last.onedrive_status || "";
+                form.elements['windows_updates'].value = last.windows_updates || "";
+                form.elements['security_check'].value = last.security_check || "";
+                form.elements['windows_os'].value = last.windows_os || "";
+                form.elements['update_status'].value = last.ios_version || last.update_status || "";
+                form.elements['camera_sync_off'].value = String(last.camera_sync_off);
+                form.elements['onedrive_sync_on'].value = String(last.onedrive_sync_on);
+                form.elements['photos_count'].value = last.photos_count || 0;
+                form.elements['photos_date'].value = last.photos_date || "";
+                form.elements['notes'].value = last.notes || "";
+            }
+
+            // Build List for FORM B (Historical Versions)
+            const { data: history } = await _supabase.from('audit_entries').select('*').eq('serial_number', sn).order('audit_date', { ascending: false });
+            const listArea = document.getElementById('historyListArea');
+            if (history) {
+                listArea.innerHTML = history.map((h, i) => `
+                    <div class="history-item" onclick='viewHistoricalRecord(${JSON.stringify(h)})'>
+                        <strong>AUDIT DATE: ${h.audit_date}</strong><br>
+                        <small>Site: ${h.site_name} | Notes: ${h.notes ? h.notes.substring(0, 30) + '...' : 'N/A'}</small>
+                    </div>
+                `).join('');
+            }
+            log.innerText = `Data loaded for ${sn}. Latest populated in Form A. Versions available in Form B.`;
+        }
+
+        function viewHistoricalRecord(h) {
+            const area = document.getElementById('historicalDetails');
+            const fields = [
+                ['Date', h.audit_date], ['Site', h.site_name], ['SN', h.serial_number],
+                ['OneDrive', h.onedrive_status], ['Win Updates', h.windows_updates],
+                ['Security', h.security_check], ['Win OS', h.windows_os],
+                ['iOS Upd', h.ios_version || h.update_status],
+                ['Cam Sync OFF', h.camera_sync_off ? 'YES' : 'NO'],
+                ['OneDrive ON', h.onedrive_sync_on ? 'YES' : 'NO'],
+                ['Photos', h.photos_count], ['P-Date', h.photos_date],
+                ['Notes', h.notes]
+            ];
+            
+            let html = `<div class="grid">`;
+            fields.forEach(f => {
+                html += `<div><div class="viewer-label">${f[0]}</div><div class="viewer-val">${f[1] || '---'}</div></div>`;
+            });
+            area.innerHTML = html + `</div><button onclick="window.print()" style="background:#444; width:100%;">🖨️ PRINT REPORT</button>`;
+        }
+
+        document.getElementById('siteSelect').addEventListener('change', refreshNames);
+        refreshNames();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const raw = Object.fromEntries(new FormData(form).entries());
+            const site = document.getElementById('siteSelect').value;
+            const { error } = await _supabase.from('audit_entries').insert([{ 
+                ...raw, site_name: site, audit_date: new Date().toISOString().split('T')[0],
+                camera_sync_off: raw.camera_sync_off === 'true', onedrive_sync_on: raw.onedrive_sync_on === 'true',
+                photos_count: parseInt(raw.photos_count) || 0
+            }]);
+            if (!error) { alert("New Historical Record Committed!"); performRecall(); } else { alert(error.message); }
+        });
+    </script>
+</body>
+</html>
