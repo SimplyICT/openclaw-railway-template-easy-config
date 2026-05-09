@@ -142,7 +142,18 @@
                         btn.style.background = '#4caf50'; btn.innerText = "✅ FILE_SENT"; status.innerText = "[ DOWNLOAD_COMPLETE ]"; setTimeout(resetBtn, 5000);
                     } else if (update.status === 'ERROR') {
                         clearInterval(poller); btn.style.background = 'orange'; btn.innerText = "❌ FAILED"; status.innerText = `[ ERROR: ${update.message.toUpperCase()} ]`; setTimeout(resetBtn, 5000);
-                    } else if (attempts > 60) { clearInterval(poller); btn.innerText = "⚠️ TIMEOUT"; status.innerText = "[ AGENT_NOT_RESPONDING ]"; setTimeout(resetBtn, 5000); }
+                    } else if (attempts > 30) { 
+                        clearInterval(poller); 
+                        btn.innerText = "⚠️ SYSTEM BUSY"; 
+                        status.innerText = "[ AGENT_BUSY ]"; 
+                        
+                        const siteEncoded = siteName.replace(/ /g, '_');
+                        const forceLink = document.getElementById('forceLink');
+                        forceLink.href = `https://openclaw-bruce-production.up.railway.app/static/reports/report_${siteEncoded}_${today}.md`;
+                        document.getElementById('forceDownloadArea').style.display = 'block';
+                        
+                        setTimeout(resetBtn, 5000); 
+                    }
                 }, 2000);
             } catch (err) { btn.style.background = 'orange'; btn.innerText = "❌ FAILED"; status.innerText = `[ TRIGGER_ERROR ]`; setTimeout(resetBtn, 5000); }
             function resetBtn() { btn.disabled = false; btn.innerText = "📥 DOWNLOAD DOCX FILE"; btn.style.background = '#1976d2'; }
