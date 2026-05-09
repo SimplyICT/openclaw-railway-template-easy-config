@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🦞 Asgard Audit Hub (v7.1)</title>
+    <title>🦞 Asgard Audit Hub (v7.2)</title>
     <style>
         body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
         .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
@@ -30,7 +30,7 @@
     </style>
 </head>
 <body>
-    <h2>🛡️ Asgardian Audit Hub (v7.1)</h2>
+    <h2>🛡️ Asgardian Audit Hub (v7.2)</h2>
     <div class="container">
         <div class="form-panel">
             <div class="site-manager">
@@ -137,7 +137,7 @@
                         clearInterval(poller);
                         const siteEncoded = siteName.replace(/ /g, '_');
                         // Direct static download link to bypass Railway Gateway Auth
-                        const downloadUrl = `https://raw.githubusercontent.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit-reports/report_${siteEncoded}_${today}.md`;
+                        const downloadUrl = `https://raw.githubusercontent.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit-reports/report_${siteEncoded}_${today}.docx`;
                         window.location.href = downloadUrl;
                         btn.style.background = '#4caf50'; btn.innerText = "✅ FILE_SENT"; status.innerText = "[ DOWNLOAD_COMPLETE ]"; setTimeout(resetBtn, 5000);
                     } else if (update.status === 'ERROR') {
@@ -149,7 +149,7 @@
                         
                         const siteEncoded = siteName.replace(/ /g, '_');
                         const forceLink = document.getElementById('forceLink');
-                        forceLink.href = `https://raw.githubusercontent.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit-reports/report_${siteEncoded}_${today}.md`;
+                        forceLink.href = `https://raw.githubusercontent.com/SimplyICT/OpenClaw-Bruce/main/dashboard/static/audit-reports/report_${siteEncoded}_${today}.docx`;
                         document.getElementById('forceDownloadArea').style.display = 'block';
                         
                         setTimeout(resetBtn, 5000); 
