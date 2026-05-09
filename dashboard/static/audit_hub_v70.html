@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦞 Asgard Audit Hub (v7.0)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 1300px; margin: 20px auto; padding: 0 10px; background-color: #f4f4f9; }
+        .container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        form, .history-panel, .site-manager { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin: 8px 0 4px; font-weight: bold; font-size: 0.8em; color:#444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f8f8; color: #d32f2f; }
+        h2, h3 { color: #333; margin-top: 0; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; }
+        .audit-header { color: #d32f2f; font-weight: bold; padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px; }
+        .error { color: #d32f2f; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+        #btnDownload { background-color: #1976d2; border: 2px solid black; box-shadow: 0 0 10px rgba(25, 118, 210, 0.3); }
+        #btnDownload:disabled { background-color: #ccc; cursor: not-allowed; }
+        .search-row { display: flex; gap: 5px; align-items: flex-end; }
+        .search-row div { flex: 1; }
+        .session-log { background: #e3f2fd; border: 1px solid #1976d2; margin-bottom: 20px; border-radius: 4px; padding: 10px; }
+        .new-device-btn { background-color: #4caf50; font-size: 0.9em; padding: 5px; margin-top: 0; margin-bottom: 10px; }
+        .new-device-btn:hover { background-color: #388e3c; }
+    </style>
+</head>
+<body>
+    <h2>🛡️ Asgardian Audit Hub (v7.0)</h2>
+    <div class="container">
+        <div class="form-panel">
+            <div class="site-manager">
+                <h3>Site Selection</h3>
+                <label>Active Audit Site</label>
+                <div style="display:flex; gap:5px;">
+                    <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
+                </div>
+            </div>
+            <form id="auditForm">
+                <div style="display:flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d32f2f; margin-bottom: 10px; padding-bottom: 5px;">
+                    <h3 style="border:none; margin:0;">New Audit Entry</h3>
+                    <button type="button" class="new-device-btn" onclick="resetForNewDevice()">➕ NEW DEVICE</button>
+                </div>
+                <div class="grid">
+                    <div class="full-width">
+                        <label>Lookup Device (SN or Select Name)</label>
+                        <div class="search-row">
+                            <div style="flex: 0.8;">
+                                <input type="text" id="serial_number" name="serial_number" required placeholder="Serial Number...">
+                            </div>
+                            <div>
+                                <select id="deviceNameLookup">
+                                    <option value="">-- Loading Devices... --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" id="fetchBtn" style="background:#1976d2; margin-top:5px; width:100%;">🔍 Find & Load Records</button>
+                    </div>
+                    <div><label>Device Type</label><select name="device_type" id="deviceTypeSelect"><option value="">-- Select Type --</option><option value="Laptop">Laptop</option><option value="Desktop">Desktop</option><option value="Tablet">Tablet</option><option value="Phone">Phone</option><option value="Camera">Camera</option></select></div>
+                    <div><label>Brand/Model</label><input type="text" name="brand_model"></div>
+                    <div><label>Room/User (Editable)</label><input type="text" name="assigned_user_room" id="assigned_user_room"></div>
+                    
+                    <div class="full-width audit-header">Compliance Data (Auto-Timestamped)</div>
+                    <div><label>Windows OS</label><input type="text" name="windows_os"></div>
+                    <div><label>iOS Version</label><input type="text" name="ios_version"></div>
+                    <div><label>Updates Status</label><input type="text" name="update_status"></div>
+                    <div><label>Security Check</label><input type="text" name="security_check"></div>
+                    <div><label>Camera Sync Off</label><select name="camera_sync_off"><option value="true">Yes</option><option value="false" selected>No</option></select></div>
+                    <div><label>OneDrive Sync On</label><select name="onedrive_sync_on"><option value="true" selected>Yes</option><option value="false">No</option></select></div>
+                    <div><label>Photos Count</label><input type="number" name="photos_count"></div>
+                    <div><label>Photos Date</label><input type="date" name="photos_date"></div>
+                    <div class="full-width"><label>Audit Notes</label><textarea name="notes" rows="2" placeholder="Site-specific findings..."></textarea></div>
+                </div>
+                <div id="formError" class="error"></div>
+                <button type="submit" id="submitBtn" style="width:100%;">Commit Audit to Selected Site</button>
+            </form>
+        </div>
+        <div class="history-panel">
+            <h3>Todays Session Log (Current Site)</h3>
+            <div id="sessionLogTarget" class="session-log"><div style="font-size:0.8em; color:#666;">Waiting for data...</div></div>
+
+            <h3>Site & Device Audit Logs (Full History)</h3>
+            <div id="historyTarget" style="overflow-x: auto;">Select a site and serial number to view historical records.</div>
+            
+            <div class="site-manager" style="margin-top:20px; background:#fff0f0; padding:20px; border:2px solid #d32f2f; border-radius:8px;">
+                <button id="btnDownload" onclick="triggerDownload()" style="width:100%; font-size:1.1em; margin-top:20px;">📥 DOWNLOAD DOCX FILE</button>
+                <div id="reportStatus" style="font-size:0.75em; margin-top:10px; font-family:monospace; color:#d32f2f; text-align:center;">[ STANDBY ]</div>
+                <div id="forceDownloadArea" style="display:none; margin-top:10px; text-align:center;">
+                    <a id="forceLink" href="#" target="_blank" style="color:#1976d2; font-size:0.85em; font-weight:bold; text-decoration:underline;">Agent taking too long? Click here to force download the last generated report.</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://zhvxjuhgfudavxrfsasn.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_6RNTxeaqITfQxj1mCF263Q_5E_n-4Yb';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const form = document.getElementById('auditForm');
+        const siteSelect = document.getElementById('siteSelect');
+        const deviceTypeSelect = document.getElementById('deviceTypeSelect');
+        const deviceNameLookup = document.getElementById('deviceNameLookup');
+        const formError = document.getElementById('formError');
+
+        function resetForNewDevice() {
+            form.reset();
+            document.getElementById('serial_number').value = '';
+            document.getElementById('assigned_user_room').value = '';
+            deviceNameLookup.value = '';
+            document.getElementById('historyTarget').innerHTML = 'Ready for new device entry.';
+            toggleFields();
+        }
+
+        async function triggerDownload() {
+            const btn = document.getElementById('btnDownload');
+            const status = document.getElementById('reportStatus');
+            const siteName = siteSelect.value;
+            const today = new Date().toISOString().split('T')[0];
+            btn.disabled = true; btn.innerText = "⌛ REQUESTING..."; status.innerText = "[ REQUESTING_DOCX_GENERATION ]";
+            
+            try {
+                const { data, error } = await _supabase.from('report_requests').insert([{ site_name: siteName, target_date: today, status: 'PENDING' }]).select();
+                if (error) throw error;
+                const reqId = data[0].id;
+                status.innerText = "[ PROCESSING_BY_ASGARDIAN_AGENT... ]";
+                
+                let attempts = 0;
+                const poller = setInterval(async () => {
+                    attempts++;
+                    const { data: update } = await _supabase.from('report_requests').select('*').eq('id', reqId).single();
+                    if (update.status === 'SUCCESS') {
+                        clearInterval(poller);
+                        const siteEncoded = siteName.replace(/ /g, '_');
+                        // Linking to the static reports folder we just initialized
+                        const downloadUrl = `https://openclaw-bruce-production.up.railway.app/static/reports/report_${siteEncoded}_${today}.md`;
+                        window.location.href = downloadUrl;
+                        btn.style.background = '#4caf50'; btn.innerText = "✅ FILE_SENT"; status.innerText = "[ DOWNLOAD_COMPLETE ]"; setTimeout(resetBtn, 5000);
+                    } else if (update.status === 'ERROR') {
+                        clearInterval(poller); btn.style.background = 'orange'; btn.innerText = "❌ FAILED"; status.innerText = `[ ERROR: ${update.message.toUpperCase()} ]`; setTimeout(resetBtn, 5000);
+                    } else if (attempts > 60) { clearInterval(poller); btn.innerText = "⚠️ TIMEOUT"; status.innerText = "[ AGENT_NOT_RESPONDING ]"; setTimeout(resetBtn, 5000); }
+                }, 2000);
+            } catch (err) { btn.style.background = 'orange'; btn.innerText = "❌ FAILED"; status.innerText = `[ TRIGGER_ERROR ]`; setTimeout(resetBtn, 5000); }
+            function resetBtn() { btn.disabled = false; btn.innerText = "📥 DOWNLOAD DOCX FILE"; btn.style.background = '#1976d2'; }
+        }
+
+        async function refreshSites() {
+            const { data } = await _supabase.from('sites').select('site_name').order('site_name');
+            if (data) { 
+                const options = data.map(s => `<option value="${s.site_name}">${s.site_name}</option>`).join('');
+                siteSelect.innerHTML = options;
+                loadSessionLog();
+                refreshDeviceNames();
+            }
+        }
+
+        async function refreshDeviceNames() {
+            const site = siteSelect.value;
+            if (!site) return;
+            deviceNameLookup.innerHTML = '<option value="">-- Loading... --</option>';
+            
+            const { data, error } = await _supabase
+                .from('audit_entries')
+                .select('serial_number, devices(assigned_user_room, brand_model)')
+                .eq('site_name', site)
+                .order('audit_date', { ascending: false });
+            
+            if (data) {
+                const unique = [];
+                const seen = new Set();
+                data.forEach(d => {
+                    if(!seen.has(d.serial_number)) {
+                        seen.add(d.serial_number);
+                        unique.push(d);
+                    }
+                });
+                
+                deviceNameLookup.innerHTML = '<option value="">-- Device Name Lookup --</option>' + 
+                    unique.map(d => `<option value="${d.serial_number}">${d.devices?.assigned_user_room || 'Unknown'} (${d.devices?.brand_model || d.serial_number})</option>`).join('');
+            } else {
+                deviceNameLookup.innerHTML = '<option value="">-- No Records Found --</option>';
+            }
+        }
+
+        refreshSites();
+
+        siteSelect.addEventListener('change', () => {
+            loadSessionLog();
+            refreshDeviceNames();
+        });
+
+        deviceNameLookup.addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.getElementById('serial_number').value = e.target.value;
+                triggerFetch(e.target.value);
+            }
+        });
+
+        async function triggerFetch(sn) {
+            if (!sn) return;
+            const { data: device } = await _supabase.from('devices').select('*').eq('serial_number', sn).maybeSingle();
+            if (device) {
+                form.elements['device_type'].value = device.device_type || '';
+                form.elements['brand_model'].value = device.brand_model || '';
+                form.elements['assigned_user_room'].value = device.assigned_user_room || '';
+                toggleFields();
+            }
+            loadHistory(sn);
+        }
+
+        document.getElementById('fetchBtn').addEventListener('click', () => {
+            const sn = document.getElementById('serial_number').value.trim();
+            triggerFetch(sn);
+        });
+
+        async function loadSessionLog() {
+            const site = siteSelect.value;
+            const target = document.getElementById('sessionLogTarget');
+            const today = new Date().toISOString().split('T')[0];
+            if (!site) return;
+            const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('site_name', site).ilike('audit_date', today + '%').order('audit_date', { ascending: false });
+            if (data && data.length > 0) {
+                let html = '<table><tr><th>Room</th><th>User/Model</th><th>OS</th><th>Photos</th></tr>';
+                data.forEach(row => { html += `<tr><td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td><td>${row.devices?.brand_model || 'N/A'}</td><td>${row.windows_os || row.ios_version || '-'}</td><td>${row.photos_count || 0}</td></tr>`; });
+                target.innerHTML = html + '</table>';
+            } else { target.innerHTML = '<div style="font-size:0.8em; opacity:0.6;">No entries today.</div>'; }
+        }
+
+        async function loadHistory(sn) {
+            const { data } = await _supabase.from('audit_entries').select('*, devices(*)').eq('serial_number', sn).order('audit_date', { ascending: false });
+            const target = document.getElementById('historyTarget');
+            if (data && data.length > 0) {
+                let html = '<table><tr><th>Date</th><th>Room</th><th>OS Ver</th><th>Update</th><th>Security</th><th>Photos</th><th>Cloud</th><th>Notes</th></tr>';
+                data.forEach(row => { 
+                    html += `<tr>
+                        <td>${new Date(row.audit_date).toLocaleDateString()||'N/A'}</td>
+                        <td style="font-weight:bold;">${row.devices?.assigned_user_room || 'N/A'}</td>
+                        <td>${row.windows_os || row.ios_version || '-'}</td>
+                        <td>${row.update_status || '-'}</td>
+                        <td>${row.security_check || '-'}</td>
+                        <td>${row.photos_count || 0}</td>
+                        <td>Cam:${row.camera_sync_off?'OFF':'ON'}/OD:${row.onedrive_sync_on?'ON':'OFF'}</td>
+                        <td>${row.notes || ''}</td>
+                    </tr>`; 
+                });
+                target.innerHTML = html + '</table>';
+            } else { target.innerHTML = '<strong>No records found.</strong>'; }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); formError.textContent = '';
+            const site = siteSelect.value;
+            const formData = new FormData(form);
+            const rawData = Object.fromEntries(formData.entries());
+            try {
+                await _supabase.from('devices').upsert({ 
+                    serial_number: rawData.serial_number, 
+                    device_type: rawData.device_type, 
+                    brand_model: rawData.brand_model,
+                    assigned_user_room: rawData.assigned_user_room
+                });
+                const { error } = await _supabase.from('audit_entries').insert([{ serial_number: rawData.serial_number, site_name: site, windows_os: rawData.windows_os, ios_version: rawData.ios_version, update_status: rawData.update_status, security_check: rawData.security_check, camera_sync_off: rawData.camera_sync_off === 'true', onedrive_sync_on: rawData.onedrive_sync_on === 'true', photos_count: parseInt(rawData.photos_count) || 0, photos_date: rawData.photos_date || null, notes: rawData.notes }]);
+                if (error) throw error;
+                alert(`Audit committed for ${site}! 🦞`); loadSessionLog(); loadHistory(rawData.serial_number); form.elements['notes'].value = ''; refreshDeviceNames();
+            } catch (err) { formError.textContent = `Error: ${err.message}`; }
+        });
+        function toggleFields() { const type = deviceTypeSelect.value; const isMobile = (type === 'Tablet' || type === 'Phone'); const isComputer = (type === 'Laptop' || type === 'Desktop'); form.elements['windows_os'].disabled = !isComputer; form.elements['ios_version'].disabled = !isMobile; [form.elements['windows_os'], form.elements['ios_version']].forEach(el => el.style.backgroundColor = el.disabled ? '#eee' : 'white'); }
+        deviceTypeSelect.addEventListener('change', toggleFields);
+    </script>
+</body>
+</html>
