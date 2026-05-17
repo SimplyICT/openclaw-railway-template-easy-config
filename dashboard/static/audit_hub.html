@@ -29,12 +29,21 @@
     <div class="container">
         <div class="form-panel">
             <div class="site-manager">
-                <h3>Site Selection & Magic Report</h3>
+                <h3>Site Selection & Management</h3>
                 <label>Active Audit Site</label>
-                <div style="display:flex; gap:5px;">
+                <div style="display:flex; gap:5px; margin-bottom:15px;">
                     <select id="siteSelect"><option value="Benowa ELC">Benowa ELC</option></select>
                 </div>
-                <div style="margin-top:20px; background:#fff0f0; padding:10px; border:1px solid #ff1744; border-radius:5px;">
+                
+                <div style="background:#f0f7ff; padding:10px; border:1px solid #1976d2; border-radius:5px; margin-bottom:15px;">
+                    <label style="color:#1976d2;">Register New Audit Site</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="newSiteName" placeholder="Site name..." style="font-size:0.9em;">
+                        <button onclick="addNewSite()" style="background:#1976d2; margin:0; padding:5px 12px; font-size:0.8em;">Add Site</button>
+                    </div>
+                </div>
+
+                <div style="background:#fff0f0; padding:10px; border:1px solid #ff1744; border-radius:5px;">
                     <button id="btnMagic" onclick="triggerMagicReport()" style="width:100%; font-size:1.1em;">🚀 MAGIC_REPORT_UPLOAD</button>
                     <div id="reportStatus" style="font-size:0.75em; margin-top:8px; font-family:monospace; color:#d32f2f; text-align:center;">[ STANDBY ]</div>
                 </div>
@@ -114,6 +123,22 @@
                 }, 2000);
             } catch (err) { btn.style.background = 'orange'; btn.innerText = "❌ TRIGGER_FAILED"; status.innerText = `[ ERROR: ${err.message.toUpperCase()} ]`; setTimeout(resetBtn, 5000); }
             function resetBtn() { btn.disabled = false; btn.innerText = "🚀 MAGIC_REPORT_UPLOAD"; btn.style.background = '#ff1744'; }
+        }
+
+        async function addNewSite() {
+            const nameInput = document.getElementById('newSiteName');
+            const newName = nameInput.value.trim();
+            if (!newName) return alert("Please enter a site name.");
+            
+            try {
+                const { error } = await _supabase.from('sites').insert([{ site_name: newName }]);
+                if (error) throw error;
+                alert(`Site "${newName}" added successfully! 🦞`);
+                nameInput.value = '';
+                await refreshSites();
+            } catch (err) {
+                alert(`Error adding site: ${err.message}`);
+            }
         }
 
         async function refreshSites() {
