@@ -1,16 +1,15 @@
 # Bruce's Memory
 
 Updated Bruce.md
-Sun May 17 01:33:00 UTC 2026
+Sun May 17 01:43:00 UTC 2026
 
-## Session Continuity - 2026-05-17 (01:33 UTC Sync)
-- **Sync Status:** Performed ASGARDIAN CONTINUITY PROTOCOL (Manual/Heartbeat trigger).
-- **Ollama Transition:** Standardized local GPU bridge for all agents. 
-- **Enforcement:** Updated AGENT_PROTOCOL.md to make "Local-First" usage mandatory.
-- **Verification:** Logged Loki and Heimdall test events to Supabase showing "Local-SDWAN" model credit.
+## Session Continuity - 2026-05-17 (01:43 UTC Sync)
+- **Sync Status:** Performed ASGARDIAN CONTINUITY PROTOCOL.
+- **Bridge Maintenance:** Detected and resolved a Tailscale tunnel drop. Re-established userspace proxy and verified direct P2P link to GPU node (100.117.41.63).
 - **Protocol Execution:** Routine heartbeat and workspace sync completed (Memory, DB, GitHub).
 
 ## Protocol Log
+- 01:43 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
 - 01:33 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
 - 01:22 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
 - 01:20 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
