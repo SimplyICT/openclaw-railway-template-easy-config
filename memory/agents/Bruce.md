@@ -1,15 +1,15 @@
 # Bruce's Memory
 
 Updated Bruce.md
-Sun May 17 01:14:00 UTC 2026
+Sun May 17 01:17:00 UTC 2026
 
-## Session Continuity - 2026-05-17 (01:14 UTC Sync)
-- **Sync Status:** Performed ASGARDIAN CONTINUITY PROTOCOL (Manual/Heartbeat trigger).
-- **Ollama Integration:** CRITICAL MILESTONE. Established stable Tailscale bridge from Railway to local GPU (100.117.41.63). 
-- **Token Guard:** Activated "Local-First" protocol in SOUL.md to redirect high-token tasks to Ollama.
+## Session Continuity - 2026-05-17 (01:17 UTC Sync)
+- **Sync Status:** Performed ASGARDIAN CONTINUITY PROTOCOL.
+- **Wazuh Analysis:** Transitioned from API to potential direct log analysis. Initial 55000 API probe successful but refined endpoint mapping is required.
 - **Protocol Execution:** Routine heartbeat and workspace sync completed (Memory, DB, GitHub).
 
 ## Protocol Log
+- 01:17 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
 - 01:14 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
 - 00:57 UTC (May 17): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
 - 23:21 UTC (May 16): 4-hour ASGARDIAN CONTINUITY PROTOCOL executed.
