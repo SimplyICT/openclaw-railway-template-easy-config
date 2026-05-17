@@ -44,8 +44,8 @@
   },
   "gateway": {
     "port": 18789,
-    "mode": "local",
-    "bind": "0.0.0.0",
+    "mode": "lan",
+    "bind": "auto",
     "controlUi": {
       "allowedOrigins": [
         "*"
