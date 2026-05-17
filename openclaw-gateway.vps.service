@@ -6,7 +6,8 @@ StartLimitBurst=5
 StartLimitIntervalSec=60
 
 [Service]
-# Explicitly point to the aiagent config and workspace
+# We've switched back to a System Service (rather than --user) 
+# to bypass the D-Bus 'No medium found' errors in your VPS environment.
 ExecStart=/usr/bin/node /usr/lib/node_modules/openclaw/dist/index.js gateway --port 18789 --config /home/aiagent/.openclaw/openclaw.json
 WorkingDirectory=/data/workspace
 User=aiagent
@@ -18,7 +19,7 @@ TimeoutStopSec=30
 TimeoutStartSec=30
 SuccessExitStatus=0 143
 KillMode=control-group
-# Point HOME to aiagent so it finds the right .openclaw folder
+
 Environment=HOME=/home/aiagent
 Environment=TMPDIR=/tmp
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:/home/aiagent/.local/bin
@@ -31,4 +32,4 @@ Environment=OPENCLAW_SERVICE_KIND=gateway
 Environment=OPENCLAW_SERVICE_VERSION=2026.5.12
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
