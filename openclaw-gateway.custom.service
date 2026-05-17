@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenClaw Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=aiagent
+Environment="OPENCLAW_CONFIG_PATH=/home/aiagent/.openclaw/openclaw.json"
+WorkingDirectory=/data/workspace
+ExecStart=/usr/bin/openclaw gateway
+Restart=always
+
+[Install]
+WantedBy=default.target
