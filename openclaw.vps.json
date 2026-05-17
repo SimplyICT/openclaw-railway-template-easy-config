@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.28",
-    "lastTouchedAt": "2026-05-17T10:35:00.000Z"
+    "lastTouchedAt": "2026-05-17T10:52:00.000Z"
   },
   "wizard": {
     "lastRunAt": "2026-05-04T03:05:04.976Z",
@@ -44,7 +44,7 @@
   },
   "gateway": {
     "port": 18789,
-    "mode": "lan",
+    "mode": "local",
     "bind": "auto",
     "controlUi": {
       "allowedOrigins": [
