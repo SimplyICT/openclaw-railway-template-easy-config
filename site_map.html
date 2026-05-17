@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asgard Operations - Site Map</title>
+    <script>
+        // Global pathing update: All files are sourced from the Mission Control Site
+        const BASE_URL = "http://110.121.15.177:8081/";
+        
+        document.addEventListener("DOMContentLoaded", () => {
+            const links = document.querySelectorAll(".card a");
+            links.forEach(link => {
+                const fileName = link.getAttribute("href");
+                if (fileName && !fileName.startsWith("http")) {
+                    link.href = BASE_URL + fileName;
+                }
+            });
+        });
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 40px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #58a6ff;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #58a6ff;
+        }
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #f0f6fc;
+        }
+        .card p {
+            font-size: 0.9rem;
+            color: #8b949e;
+            line-height: 1.4;
+        }
+        .card a {
+            display: inline-block;
+            margin-top: 10px;
+            color: #58a6ff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .card a:hover {
+            text-decoration: underline;
+        }
+        .category {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ff7b72;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Asgard Operations Site Map</h1>
+        <div class="grid">
+            <!-- Core Management -->
+            <div class="card">
+                <div class="category">Core</div>
+                <h2>Mission Control</h2>
+                <p>Primary Asgard index and central hub for operations.</p>
+                <a href="index.html">index.html</a>
+            </div>
+
+            <div class="card">
+                <div class="category">Orchestration</div>
+                <h2>Team Status</h2>
+                <p>Kanban board for Asgardian agent coordination and squad status.</p>
+                <a href="squad_board_v2.html">squad_board_v2.html</a>
+            </div>
+
+            <div class="card">
+                <div class="category">Orchestration</div>
+                <h2>Tasks & Sync</h2>
+                <p>Monitor live background items and synchronization status.</p>
+                <a href="tasks.html">tasks.html</a>
+            </div>
+
+            <!-- SOC Operations -->
+            <div class="card">
+                <div class="category">SOC</div>
+                <h2>Heimdall Monitor</h2>
+                <p>The All-Seeing Eye. Asgardian SOC monitoring and threat visibility.</p>
+                <a href="monitor_v1.html">monitor_v1.html</a>
+            </div>
+
+            <div class="card">
+                <div class="category">SOC</div>
+                <h2>Loki's Triage Feed</h2>
+                <p>Raw alert ingestion and localized triage feed (unlinked).</p>
+                <a href="loki_feed.html">loki_feed.html</a>
+            </div>
+
+            <div class="card">
+                <div class="category">SOC</div>
+                <h2>Sentinel Fleet</h2>
+                <p>List and status of all agents currently connected to Wazuh.</p>
+                <a href="sentinel.html">sentinel.html</a>
+            </div>
+
+            <!-- Provisioning -->
+            <div class="card">
+                <div class="category">Provisioning</div>
+                <h2>Realm Manager</h2>
+                <p>Onboarding and management of new M365 tenants.</p>
+                <a href="realm_manager.html">realm_manager.html</a>
+            </div>
+
+            <!-- Client Audit -->
+            <div class="card">
+                <div class="category">Client Services</div>
+                <h2>Audit Hub</h2>
+                <p>Site audit dashboard for client delivery (Baseline v7.8).</p>
+                <a href="audit_hub.html">audit_hub.html</a>
+            </div>
+
+            <div class="card">
+                <div class="category">Client Services</div>
+                <h2>Bulk Importer</h2>
+                <p>CSV import tool for bulk record ingestion into the site audit system.</p>
+                <a href="importer.html">importer.html</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
