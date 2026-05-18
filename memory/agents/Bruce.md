@@ -43,5 +43,14 @@
 - 00:31 UTC (May 18): Attempted to refresh memories from Supabase; initial API key invalid, corrected and retrieved logs.
 - 00:37 UTC (May 18): Responded to user query about the latest discussion
 - 01:06 UTC (May 18): Explained inability to SSH to GPU server due to network restrictions.
-- 01:08 UTC (May 18): Acknowledged user confusion and offered clarification.
+- 01:08 UTC (May 18): Acknowledged user confusion and offered clarification
+- 01:12 UTC (May 18): Recorded user statement that the SSH connection to the GPU server is blocked at the network level and cannot be reached on port 22.
+- 02:03 UTC (May 18): Noted that, until further notice, all files we edit are on the GPU server in the `monitor-control-site` directory.
+- 02:09 UTC (May 18): Proposed Add Site flow: click → insert placeholder row → fill details → submit → site appears in dropdown.
 - 00:39 UTC (May 18): Provided the last 20 Supabase log entries (shown below)
+- 08:31 UTC (May 18): Recalled last conversation about identity and greeting pattern
+- 08:33 UTC (May 18): Answered user query about the last thing we spoke of, confirming we discussed identity and greeting pattern
+- 08:35 UTC (May 18): Confirmed that the most recent discussion was about my identity, greeting pattern, and the fact we spoke a few hours ago
+- 08:36 UTC (May 18): Responded to user query about the last thing we spoke of, confirming it was about identity and greeting pattern
+- 08:37 UTC (May 18): Provided answer that the last discussion was about Bruce's identity and greeting pattern, noting we spoke a few hours ago
+- 08:38 UTC (May 18): Replied to user asking what was the last thing we spoke of; clarified that the most recent discussion covered identity and greeting pattern.
